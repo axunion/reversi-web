@@ -160,7 +160,11 @@ A disc is one element with two absolutely stacked faces; color changes are expre
   blur(4px)`, centered panel (`var(--frame)` background, radius, shadow), fade+scale-in
   ~180ms. Buttons stacked vertically, same style as the title menu. Using `Dialog` means
   focus trap, `Escape`-to-close, and `aria-modal`/labelling come from the primitive —
-  nothing to hand-roll here.
+  nothing to hand-roll here. **`ResultOverlay` opts out of Kobalte's default dismiss
+  behavior** (`onEscapeKeyDown`/`onPointerDownOutside`/`onInteractOutside` all
+  `preventDefault()`): the game just ended and the board is no longer interactive, so
+  dismissing the overlay without choosing Rematch/Back to Title would strand the player
+  on a dead board. `InGameMenu` keeps the default dismiss behavior (`Escape` = Resume).
 - `ResultOverlay` content: headline is color-based in PvP ("Black wins / White wins /
   Draw") but personalized in AI mode using `config.playerColor` ("You win! / Computer
   wins / Draw") — this is why `ResultOverlay` takes `config` as a prop. Final score as

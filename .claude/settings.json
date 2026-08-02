@@ -1,0 +1,30 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "if": "Edit(**/src/**)",
+            "command": "bash",
+            "args": [".claude/hooks/format-on-edit.sh"],
+            "statusMessage": "Formatting with Biome..."
+          }
+        ]
+      },
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "if": "Write(**/src/**)",
+            "command": "bash",
+            "args": [".claude/hooks/format-on-edit.sh"],
+            "statusMessage": "Formatting with Biome..."
+          }
+        ]
+      }
+    ]
+  }
+}

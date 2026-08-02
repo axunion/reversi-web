@@ -1,0 +1,59 @@
+# Implementation Progress
+
+One line item = one `ship-next-task` run = one commit. Ordered per `blueprint.md`'s
+roadmap (M1 → M5); items within a milestone are ordered by dependency, except that the
+binary-independent M4 items are pulled before M3 — they don't need `public/edax/`, and
+this keeps the automated loop making progress right up to the one step it can't do
+itself (see below).
+
+**`[MANUAL]` items require a human** (installing Emscripten, running a multi-hour C
+build, verifying licensing) and cannot be safely attempted by the automated loop. When
+`ship-next-task` reaches one, it stops and reports it instead of attempting it — a
+person must do the work and check the box before the loop can continue past it.
+
+## M1 — Core rules (spec 03, pure part)
+
+- [ ] `src/logic/types.ts`: `Player`, `CellValue`, `Board`, `Difficulty`, `GameConfig`
+- [ ] `src/logic/rules.ts`: `initialBoard`, `opponent`, `getFlips`, `getLegalMoves`,
+      `applyMove`, `countDiscs`, `progressAfter`
+- [ ] `src/logic/rules.test.ts`: the 15 pure-function cases from spec 03 §5 (1–15)
+
+## M2 — Screens and visuals, PvP playable (specs 01, 02, 03 store part)
+
+- [ ] `src/index.css`: reset + design tokens (spec 02 §2)
+- [ ] `Disc` component + 3D flip CSS (spec 02 §4)
+- [ ] `Board` component: grid, star points, legal-move hints, last-move marker (spec 02 §3)
+- [ ] `createGameStore.ts` + store tests (spec 03 §4, test cases 16–19)
+- [ ] `TurnIndicator` component (spec 02 §6)
+- [ ] `GameScreen`: wires store + Board + TurnIndicator for PvP play
+- [ ] `InGameMenu` (Kobalte `Dialog`) (spec 01 §3, spec 02 §6)
+- [ ] `ResultOverlay` (Kobalte `Dialog`, personalized AI-mode text) (spec 01 §3, spec 02 §6)
+- [ ] `TitleScreen`: main menu + aiSetup step (Kobalte `RadioGroup` for difficulty/color)
+      (spec 01 §2, spec 02 §5)
+- [ ] `App.tsx`: screen switching signal (spec 01 §1, §4)
+
+## M4a — AI protocol & client, no binaries needed (spec 04)
+
+- [ ] `src/ai/protocol.ts`: `MainToWorker` / `WorkerToMain` types
+- [ ] `src/ai/difficulty.ts` + tests
+- [ ] `src/ai/edax.worker.ts` + `boardToEdax`/`moveToIndex` unit tests (pure
+      converters only — the Wasm engine call itself is exercised in M4b)
+- [ ] `src/ai/aiClient.ts` + mocked-worker requestId/cancel tests
+
+## M3 — Edax assets (spec 05)
+
+- [ ] **[MANUAL]** Obtain/build `edax.js` + `edax.wasm` + `eval.dat`, place under
+      `public/edax/` with `LICENSE` and `README.md` (spec 05 §1–4)
+- [ ] **[MANUAL]** Isolated smoke test of the build (spec 05 §3 note 4) before app
+      integration
+
+## M4b — AI integration wiring, needs real binaries to verify end-to-end (spec 04)
+
+- [ ] `GameScreen`: AI orchestration effect (spec 04 §5)
+- [ ] `TitleScreen`: AI setup wiring + `aiAvailable` disabled state (spec 04 §6)
+
+## M5 — Polish pass
+
+- [ ] `prefers-reduced-motion` handling (spec 02 §4, §8)
+- [ ] Focus/keyboard access audit on menus and controls
+- [ ] Visual checklist pass (spec 02 §8) and final `pnpm check` / `pnpm test` green
