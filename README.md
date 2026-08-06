@@ -7,7 +7,8 @@ A minimal template for building [Solid](https://solidjs.com) apps with [Vite](ht
 - [Solid](https://solidjs.com) with TypeScript
 - [Vite](https://vite.dev) with [Lightning CSS](https://lightningcss.dev) for CSS transforms and minification
 - [Biome](https://biomejs.dev) for linting and formatting (Solid rules enabled)
-- [Vitest](https://vitest.dev) for testing (jsdom environment)
+- [Vitest](https://vitest.dev) for unit testing (happy-dom environment)
+- [Playwright](https://playwright.dev) for end-to-end testing
 - [lefthook](https://lefthook.dev) git hooks: format on commit, check and test on push
 - [Kobalte](https://kobalte.dev) and [Lucide](https://lucide.dev) for UI components and icons
 
@@ -26,11 +27,12 @@ This also installs the git hooks.
 
 ## Scripts
 
-| Command        | Description                              |
-| -------------- | ---------------------------------------- |
-| `pnpm dev`     | Start the dev server                     |
-| `pnpm build`   | Type-check and build for production      |
-| `pnpm preview` | Preview the production build             |
-| `pnpm test`    | Run tests                                |
-| `pnpm check`   | Lint, format check, and type-check       |
-| `pnpm fix`     | Fix lint and format issues automatically |
+| Command           | Description                               |
+| ----------------- | ------------------------------------------ |
+| `pnpm dev`        | Start the dev server                       |
+| `pnpm build`      | Type-check and build for production        |
+| `pnpm preview`    | Preview the production build               |
+| `pnpm test`       | Run unit tests                             |
+| `pnpm test:e2e`   | Run Playwright end-to-end tests            |
+| `pnpm check`      | Lint, format check, and type-check         |
+| `pnpm fix`        | Fix lint and format issues automatically   |
