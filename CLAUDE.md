@@ -37,9 +37,78 @@ development-time planning notes follow the language the user is working in.
 ## Testing
 
 - Write tests before or alongside implementation — they are your success criteria.
-- If the project has no test setup, ask briefly: introduce one, or verify another way?
 - Test observable outcomes and edge cases, not implementation details.
 - Each test is fully self-contained; no shared mutable state between tests.
+
+Two kinds of checking are deliberately kept apart:
+
+- **Structural correctness** — board state, legal moves, flip results, worker protocol
+  messages: anything with a right answer. This belongs in Vitest (`pnpm test`) or the
+  Playwright suite (`pnpm test:e2e`) and runs automatically as part of verification.
+- **Visual and subjective judgment** — "does the flip look right", spacing, felt-green
+  tone, motion timing. No script judges this reliably, and forcing it (exhaustive
+  automated browsing, screenshot diffing without a real need) is slow and still misses
+  what a person catches at a glance. This stays a live check — a look at `pnpm dev`, or
+  the `inspector` agent. Don't try to automate it away.
+
+Persist a regression test only for a durable, worth-protecting flow, not for a one-off
+"let me verify this change" check. `e2e/smoke.spec.ts` sets the bar. The same rule that
+governs abstractions governs test files: a check that did its job once doesn't need to
+become permanent. When unsure whether something is worth keeping, ask.
+
+## Subagents
+
+Four project agents live in `.claude/agents/`, alongside Claude Code's built-in ones
+(notably `Explore`, which covers local file discovery — nothing here duplicates it):
+
+| Agent | Role |
+| --- | --- |
+| `researcher` | External knowledge only: third-party API usage, version fit, deprecations. Never reads this codebase for conventions. |
+| `reviewer` | Reviews the pending diff against these conventions and against the relevant `spec/*.md` section. Read-only. |
+| `tester` | Runs `pnpm test` / `pnpm check` / `pnpm test:e2e`, and writes missing test cases. Test files only. |
+| `inspector` | Renders the app in a disposable browser and inspects the result across viewports. |
+
+**None of them writes production code, and that is on purpose.** Implementation always
+happens in the main conversation, at every tier below. A write agent enforces no useful
+tool restriction (it needs nearly every tool), its real product is the working tree
+rather than the summary it hands back, and each fix pass would re-spawn it with no
+memory of the code it just wrote. What the read-only agents give you — an opinion from
+something that didn't write the code — is exactly what survives the handoff.
+
+How much scaffolding a change gets:
+
+1. **Trivial** (one-line fix, typo, config tweak): implement directly. No agents.
+2. **Non-trivial but contained** (a self-contained change in one area): implement
+   directly. Optionally run one research agent first — `Explore` to confirm an
+   established convention, `researcher` for an unfamiliar external API. Afterward, run
+   `reviewer` and `tester` in parallel **without asking first**. They're read-only and
+   test-only, so the cost of running them is low and they exist precisely to cover the
+   blind spot of reviewing your own work.
+3. **Large, ambiguous, or high-risk** (spans many files, substantially touches
+   `src/logic/` or `src/ai/`, or the task itself is genuinely ambiguous): prefer the
+   full loop — research → implement → review + test, iterating on findings — with
+   `Explore` and `researcher` running in parallel up front. **Always confirm with the
+   user before starting.** The reason is cost, not risk: the sequence spawns four agents
+   and can loop up to three times. `/feature-loop <task>` packages this;
+   `/ship-next-task` is the same shape driven from `spec/PROGRESS.md`, ending in a
+   commit. Both are explicit-invocation-only.
+
+**Visual verification is a separate axis, not a fourth tier.** The tiers above track how
+risky a change is; whether to actually look at the rendered result tracks whether the
+change touches rendered UI, which cuts across all three. A tier-2 CSS tweak may need a
+look; a tier-3 worker refactor may render nothing. Three cases:
+
+- Change touches no rendered surface: skip — no browser involved.
+- Small, isolated, single-property UI tweak: a quick manual glance at `pnpm dev` is
+  enough.
+- Layout that varies by viewport, a change spanning components that share styles, or
+  chasing a reported visual bug: run `inspector`. It has no memory of the conversation,
+  so give it the full picture, and treat a fix as unverified until a re-run comes back
+  clean.
+
+Running `inspector` needs no confirmation, but it isn't automatic for every non-trivial
+UI change either — it costs a dev server and a browser session, so weigh it against
+these three cases each time.
 
 ## Commits
 
