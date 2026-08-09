@@ -13,7 +13,7 @@ person must do the work and check the box before the loop can continue past it.
 
 ## M1 — Core rules (spec 03, pure part)
 
-- [ ] `src/logic/types.ts`: `Player`, `CellValue`, `Board`, `Difficulty`, `GameConfig`
+- [x] `src/logic/types.ts`: `Player`, `CellValue`, `Board`, `Difficulty`, `GameConfig`
 - [ ] `src/logic/rules.ts`: `initialBoard`, `opponent`, `getFlips`, `getLegalMoves`,
       `applyMove`, `countDiscs`, `progressAfter`
 - [ ] `src/logic/rules.test.ts`: the 15 pure-function cases from spec 03 §5 (1–15)
