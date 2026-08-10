@@ -30,6 +30,11 @@ person must do the work and check the box before the loop can continue past it.
 - [x] `ResultOverlay` (Kobalte `Dialog`, personalized AI-mode text) (spec 01 §3, spec 02 §6)
 - [x] `TitleScreen`: main menu + aiSetup step (Kobalte `RadioGroup` for difficulty/color)
       (spec 01 §2, spec 02 §5)
+- [x] `GameScreen`: wire `InGameMenu` + `ResultOverlay` (menu button, local
+      `menuOpen` signal, Resume/Restart/Quit and Rematch/Back-to-Title actions) —
+      split out because spec 01 §4's transition table rows 5-11 and spec 01 §5's
+      acceptance criteria aren't reachable without this, and the original
+      `App.tsx` task alone can't satisfy them (spec 01 §1, §3, §4, spec 02 §6)
 - [ ] `App.tsx`: screen switching signal (spec 01 §1, §4)
 
 ## M4a — AI protocol & client, no binaries needed (spec 04)
