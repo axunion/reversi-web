@@ -1,0 +1,61 @@
+.indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  width: min(92vmin, 560px);
+  margin: 0 auto 12px;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.side {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  opacity: 0.6;
+  transition:
+    opacity 200ms,
+    box-shadow 200ms;
+}
+
+.active {
+  opacity: 1;
+  box-shadow:
+    0 0 0 1px var(--accent),
+    0 0 12px rgb(227 178 60 / 0.5);
+}
+
+.glyph {
+  position: relative;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+}
+
+.status {
+  min-width: 80px;
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--accent);
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.thinking {
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+.pass {
+  font-weight: 600;
+}

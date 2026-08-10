@@ -24,7 +24,7 @@ person must do the work and check the box before the loop can continue past it.
 - [x] `Disc` component + 3D flip CSS (spec 02 §4)
 - [x] `Board` component: grid, star points, legal-move hints, last-move marker (spec 02 §3)
 - [x] `createGameStore.ts` + store tests (spec 03 §4, test cases 16–19)
-- [ ] `TurnIndicator` component (spec 02 §6)
+- [x] `TurnIndicator` component (spec 02 §6)
 - [ ] `GameScreen`: wires store + Board + TurnIndicator for PvP play
 - [ ] `InGameMenu` (Kobalte `Dialog`) (spec 01 §3, spec 02 §6)
 - [ ] `ResultOverlay` (Kobalte `Dialog`, personalized AI-mode text) (spec 01 §3, spec 02 §6)
