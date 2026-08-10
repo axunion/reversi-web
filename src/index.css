@@ -3,6 +3,27 @@
   font-family: system-ui, sans-serif;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+
+  /* board */
+  --felt: #1b6b45; /* deep felt green */
+  --felt-dark: #14523a; /* cell shading / vignette */
+  --grid-line: #0e3d2b;
+  --frame: #241a12; /* dark wood frame around the board */
+  /* discs */
+  --disc-black-hi: #5a5a5a;
+  --disc-black: #111;
+  --disc-white-hi: #ffffff;
+  --disc-white: #d8d8d4;
+  /* ui */
+  --bg: #101614; /* page background, near-black green */
+  --text: #e8e6e0;
+  --accent: #e3b23c; /* gold — highlights, title, buttons */
+  --overlay: rgb(0 0 0 / 0.55);
+  /* motion */
+  --flip-duration: 500ms;
+  --flip-stagger: 60ms;
+  --ease-pop: cubic-bezier(0.2, 1.4, 0.4, 1);
+  --radius: 12px;
 }
 
 *,
@@ -14,4 +35,5 @@
 body {
   margin: 0;
   min-height: 100svh;
+  background: radial-gradient(circle at 50% 0%, var(--bg), #000);
 }
