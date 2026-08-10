@@ -1,19 +1,28 @@
-import { createSignal } from "solid-js";
-import "./App.css";
+import { createSignal, Match, Switch } from "solid-js";
+import type { GameConfig } from "./logic/types";
+import GameScreen from "./screens/GameScreen/GameScreen";
+import TitleScreen from "./screens/TitleScreen/TitleScreen";
+
+type Screen = { name: "title" } | { name: "game"; config: GameConfig };
 
 function App() {
-  const [count, setCount] = createSignal(0);
+  const [screen, setScreen] = createSignal<Screen>({ name: "title" });
 
   return (
-    <main>
-      <h1>vite-solid-template</h1>
-      <button type="button" onClick={() => setCount((c) => c + 1)}>
-        Count is {count()}
-      </button>
-      <p>
-        Edit <code>src/App.tsx</code> and save to test HMR
-      </p>
-    </main>
+    <Switch>
+      <Match when={screen().name === "title"}>
+        <TitleScreen
+          onStart={(config) => setScreen({ name: "game", config })}
+          aiAvailable
+        />
+      </Match>
+      <Match when={screen().name === "game"}>
+        <GameScreen
+          config={(screen() as Extract<Screen, { name: "game" }>).config}
+          onQuit={() => setScreen({ name: "title" })}
+        />
+      </Match>
+    </Switch>
   );
 }
 

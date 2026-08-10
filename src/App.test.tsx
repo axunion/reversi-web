@@ -5,15 +5,24 @@ import App from "./App";
 afterEach(cleanup);
 
 describe("App", () => {
-  it("increments the count when the button is clicked", async () => {
+  it("starts on the title screen and switches to the game screen on Two Players", () => {
     render(() => <App />);
 
-    const button = screen.getByRole("button", { name: /count is 0/i });
-    expect(button).toBeTruthy();
+    expect(screen.getByText("Two Players")).not.toBeNull();
 
-    fireEvent.click(button);
+    fireEvent.click(screen.getByText("Two Players"));
 
-    const updated = await screen.findByRole("button", { name: /count is 1/i });
-    expect(updated.textContent).toContain("Count is 1");
+    expect(screen.queryByText("Two Players")).toBeNull();
+    expect(screen.getByLabelText("Menu")).not.toBeNull();
+  });
+
+  it("returns to the title screen via Quit to Title in the in-game menu", () => {
+    render(() => <App />);
+
+    fireEvent.click(screen.getByText("Two Players"));
+    fireEvent.click(screen.getByLabelText("Menu"));
+    fireEvent.click(screen.getByText("Quit to Title"));
+
+    expect(screen.getByText("Two Players")).not.toBeNull();
   });
 });

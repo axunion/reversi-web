@@ -35,7 +35,7 @@ person must do the work and check the box before the loop can continue past it.
       split out because spec 01 §4's transition table rows 5-11 and spec 01 §5's
       acceptance criteria aren't reachable without this, and the original
       `App.tsx` task alone can't satisfy them (spec 01 §1, §3, §4, spec 02 §6)
-- [ ] `App.tsx`: screen switching signal (spec 01 §1, §4)
+- [x] `App.tsx`: screen switching signal (spec 01 §1, §4)
 
 ## M4a — AI protocol & client, no binaries needed (spec 04)
 
