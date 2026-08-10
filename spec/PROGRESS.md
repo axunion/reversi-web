@@ -21,7 +21,7 @@ person must do the work and check the box before the loop can continue past it.
 ## M2 — Screens and visuals, PvP playable (specs 01, 02, 03 store part)
 
 - [x] `src/index.css`: reset + design tokens (spec 02 §2)
-- [ ] `Disc` component + 3D flip CSS (spec 02 §4)
+- [x] `Disc` component + 3D flip CSS (spec 02 §4)
 - [ ] `Board` component: grid, star points, legal-move hints, last-move marker (spec 02 §3)
 - [ ] `createGameStore.ts` + store tests (spec 03 §4, test cases 16–19)
 - [ ] `TurnIndicator` component (spec 02 §6)
