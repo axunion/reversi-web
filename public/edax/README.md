@@ -42,7 +42,7 @@ emcc bit.c board.c move.c crc32c.c hash.c ybwc.c eval.c endgame.c midgame.c root
   -O2 -D_GNU_SOURCE=1 \
   -s MODULARIZE=1 \
   -s EXPORT_ES6=1 \
-  -s ENVIRONMENT=node \
+  -s ENVIRONMENT=worker \
   -s ALLOW_MEMORY_GROWTH=1 \
   -s INVOKE_RUN=0 \
   -s EXIT_RUNTIME=1 \
@@ -50,13 +50,17 @@ emcc bit.c board.c move.c crc32c.c hash.c ybwc.c eval.c endgame.c midgame.c root
   -o edax.js
 ```
 
-`ENVIRONMENT=node` is deliberate even though this ships in a browser
-Worker: the produced `edax.js` only uses Emscripten's generic
-Node/Web-compatible I/O shims (`callMain`, `FS`, `Module.stdin`/`print`),
-not any Node-only API, so it runs unmodified in a Worker. It was built
-this way because reproducing and smoke-testing it locally is far
-easier under Node (spec 05 §3 note 4) than in a browser, and there was
-no reason to special-case the two environments.
+`ENVIRONMENT=worker` matches the actual runtime (`src/ai/edax.worker.ts`
+runs inside a Web Worker). An earlier build of this file used
+`ENVIRONMENT=node` on the assumption that Emscripten's `callMain`/`FS`/
+`Module.stdin`/`print` surface is generic across Node and Worker — it
+is *not*: `ENVIRONMENT_IS_NODE`/`ENVIRONMENT_IS_WORKER` are baked into
+the output as compile-time constants, and a `node`-targeted build's
+very first executable statement is an unconditional `import("node:module")`,
+which fails immediately in a real browser (confirmed with Playwright
+against a real Chromium before this was caught and fixed). Node is
+still useful for a *quick* local sanity check (see "Smoke test" below),
+but the shipped build must target `worker`.
 
 Single-threaded on purpose, per spec 05 §3: no `-pthread` means no
 `SharedArrayBuffer`, so the app needs no COOP/COEP headers.
@@ -108,11 +112,40 @@ be reused across multiple `callMain` calls), feeding
 `Module.stdin`, and parsing the `Edax plays <move>` line `Module.print`
 receives.
 
+`edax.js` is loaded by `fetch`-ing it as text and `import()`-ing the
+result as a `Blob` URL, not a direct `import("/edax/edax.js")`: Vite's
+dev server explicitly refuses to serve files under `public/` through
+its module graph ("should not be imported from source code... can
+only be referenced via HTML tags"), and `/* @vite-ignore */` does not
+suppress that check for a dynamic import running inside a Worker
+bundle. The Blob URL sidesteps Vite's module graph entirely, in both
+dev and production. Because the loaded module's `import.meta.url` is
+then the `blob:` URL rather than `/edax/edax.js`, Emscripten's default
+same-directory `.wasm` lookup no longer works, so `locateFile` is set
+explicitly to `/edax/<file>` on every module instantiation.
+
 ## Smoke test
 
-Verified locally with a Node script (spec 05 §3 note 4): initialized
-the module with `eval.dat` in place, set the opening position, searched
-at level 1, 5, and 11, and confirmed the returned move was one of
-`d3`/`c4`/`f5`/`e6` in each case (also confirmed white-to-move works).
-Level 11 (hard) completed in ~1s from the opening position — well
-inside spec 04 §4's 30s client-side timeout.
+Two layers, both passing:
+
+1. **Node** (spec 05 §3 note 4) — quick local sanity check during
+   development: initialized the module with `eval.dat` in place, set
+   the opening position, searched at level 1, 5, and 11, and confirmed
+   the returned move was one of `d3`/`c4`/`f5`/`e6` in each case (also
+   confirmed white-to-move works). Level 11 (hard) completed in ~1s
+   from the opening position — well inside spec 04 §4's 30s
+   client-side timeout. This layer alone missed the `ENVIRONMENT=node`
+   mistake above, since Node satisfies `ENVIRONMENT_IS_NODE` by
+   construction — it proves the C-level protocol works, not that the
+   build loads in the real target runtime.
+2. **Real browser** (Playwright + Chromium, driving `pnpm dev`) —
+   caught the `ENVIRONMENT=node` build failing to load in a Worker at
+   all, and confirmed the `worker`-targeted rebuild fixed it. Also
+   exercised the actual production code path end-to-end through
+   `src/ai/aiClient.ts` (not a standalone script): `init()`, a real
+   `getBestMove()` from the opening position, two further sequential
+   searches from different positions and levels, and a cancel-mid-search
+   immediately followed by a new search — confirming the cancelled
+   request's promise is left permanently unsettled while the new one
+   resolves correctly, matching spec 04 §4's requestId-guard contract
+   against the real engine, not just the mocked-worker unit tests.

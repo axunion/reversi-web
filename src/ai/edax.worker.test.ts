@@ -61,4 +61,8 @@ describe("moveToIndex", () => {
       }
     }
   });
+
+  it("accepts the uppercase column letter Edax's own output uses (e.g. 'D3')", () => {
+    expect(moveToIndex("D3")).toBe(19);
+  });
 });

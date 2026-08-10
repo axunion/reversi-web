@@ -2,38 +2,53 @@ import { SIZE } from "../logic/rules";
 import type { Player } from "../logic/types";
 import type { MainToWorker, WorkerToMain } from "./protocol";
 
-// Symbol names exported by the libedax build (spec 05 §1 note 1). These are
-// placeholders — replace them with the real names from the chosen libedax
-// fork's header once the M3 build (spec 05) produces edax.js/edax.wasm, and
-// keep this list in sync with that build.
-const EDAX_SYMBOLS = {
-  initialize: "libedax_initialize",
-  setBoard: "libedax_set_board",
-  setLevel: "libedax_set_level",
-  search: "libedax_search",
-} as const;
-
 type EdaxModule = {
-  ccall: (
-    name: string,
-    returnType: string,
-    argTypes: string[],
-    args: unknown[],
-  ) => unknown;
-  FS: { writeFile: (path: string, data: Uint8Array) => void };
+  FS: {
+    mkdir: (path: string) => void;
+    writeFile: (path: string, data: Uint8Array) => void;
+  };
+  callMain: (args: string[]) => void;
 };
 
-type EdaxFactory = (options?: {
+type EdaxModuleOptions = {
+  noInitialRun?: boolean;
   locateFile?: (path: string) => string;
-}) => Promise<EdaxModule>;
+  print?: (text: string) => void;
+  printErr?: (text: string) => void;
+  stdin?: () => number | null;
+  preRun?: ((module: EdaxModule) => void)[];
+};
 
-// edax.js is a runtime-only asset produced by the M3 build (spec 05); it
-// doesn't exist in the repo (or as a resolvable module) until then. Reading
-// the path through a variable, rather than a string literal, keeps tsc from
-// trying to resolve it as a module at build time.
-const EDAX_MODULE_PATH = "/edax/edax.js";
+type EdaxFactory = (options: EdaxModuleOptions) => Promise<EdaxModule>;
 
-let engine: EdaxModule | null = null;
+// edax.js is a runtime-only asset under public/ (public/edax/README.md), not
+// part of the app's module graph, so it can't be a plain `import("/edax/edax.js")`:
+// Vite's dev server explicitly rejects import()-ing files under public/ ("should
+// not be imported from source code... can only be referenced via HTML tags"),
+// and @vite-ignore doesn't suppress that check inside a Worker bundle. Fetching
+// the script as text and import()-ing it as a Blob URL sidesteps Vite's module
+// graph entirely, in both dev and production. locateFile must then be set
+// explicitly, since the module's import.meta.url is the blob: URL, not
+// /edax/edax.js, so Emscripten's default same-directory .wasm lookup breaks.
+async function loadEdaxFactory(): Promise<EdaxFactory> {
+  const source = await fetch("/edax/edax.js").then((res) => res.text());
+  const blobUrl = URL.createObjectURL(
+    new Blob([source], { type: "text/javascript" }),
+  );
+  try {
+    const mod = await import(/* @vite-ignore */ blobUrl);
+    return mod.default as EdaxFactory;
+  } finally {
+    URL.revokeObjectURL(blobUrl);
+  }
+}
+
+function locateFile(path: string): string {
+  return `/edax/${path}`;
+}
+
+let edaxFactory: EdaxFactory | null = null;
+let evalData: ArrayBuffer | null = null;
 
 export function boardToEdax(board: readonly number[], turn: Player): string {
   const cells = board
@@ -44,7 +59,7 @@ export function boardToEdax(board: readonly number[], turn: Player): string {
 }
 
 export function moveToIndex(move: string): number {
-  const col = move.charCodeAt(0) - "a".charCodeAt(0);
+  const col = move.toLowerCase().charCodeAt(0) - "a".charCodeAt(0);
   const row = Number(move[1]) - 1;
   return row * SIZE + col;
 }
@@ -53,40 +68,72 @@ function post(message: WorkerToMain): void {
   postMessage(message);
 }
 
+// The build's EXIT_RUNTIME=1 runtime can't be reused across multiple
+// callMain() calls, so each search gets a fresh module instance, driven
+// through Edax's own text protocol via stdin/stdout (public/edax/README.md):
+// setboard <board>, go, quit — then parse the "Edax plays <move>" reply.
+async function runSearch(
+  board: readonly number[],
+  turn: Player,
+  level: number,
+): Promise<number> {
+  if (!edaxFactory || !evalData) throw new Error("Engine not initialized");
+
+  const commands = [`setboard ${boardToEdax(board, turn)}`, "go", "quit", ""];
+  let commandIndex = 0;
+  let charIndex = 0;
+  let output = "";
+
+  const evalBytes = evalData;
+  const module = await edaxFactory({
+    noInitialRun: true,
+    locateFile,
+    print: (text) => {
+      output += `${text}\n`;
+    },
+    printErr: () => {},
+    stdin: () => {
+      if (commandIndex >= commands.length) return null; // EOF
+      const line = commands[commandIndex];
+      if (charIndex < line.length) return line.charCodeAt(charIndex++);
+      commandIndex++;
+      charIndex = 0;
+      return 10; // '\n'
+    },
+    preRun: [
+      (mod) => {
+        mod.FS.mkdir("data");
+        mod.FS.writeFile("data/eval.dat", new Uint8Array(evalBytes));
+      },
+    ],
+  });
+
+  module.callMain(["-l", String(level), "-verbose", "0"]);
+
+  const match = output.match(/Edax plays ([a-hA-H][1-8])/);
+  if (!match) throw new Error("Edax did not report a move");
+  return moveToIndex(match[1]);
+}
+
 self.onmessage = async ({ data }: MessageEvent<MainToWorker>) => {
   try {
     switch (data.type) {
       case "init": {
-        const [factory, evalData] = await Promise.all([
-          import(/* @vite-ignore */ EDAX_MODULE_PATH).then(
-            (mod) => mod.default as EdaxFactory,
-          ),
+        const [factory, evalBuffer] = await Promise.all([
+          loadEdaxFactory(),
           fetch("/edax/eval.dat").then((res) => res.arrayBuffer()),
         ]);
-        engine = await factory({ locateFile: (f: string) => `/edax/${f}` });
-        // eval.dat must be in the Emscripten FS before the engine init call below
-        // (spec 05 §2) — Edax reads it from there during initialization.
-        engine?.FS.writeFile("data/eval.dat", new Uint8Array(evalData));
-        engine?.ccall(EDAX_SYMBOLS.initialize, "void", [], []);
+        // Instantiate once (without running main) to surface a wasm compile
+        // error at init time rather than on the first search (spec 04 §6).
+        await factory({ noInitialRun: true, locateFile });
+        edaxFactory = factory;
+        evalData = evalBuffer;
         post({ type: "ready" });
         break;
       }
       case "search": {
-        if (!engine) throw new Error("Engine not initialized");
-        const position = boardToEdax(data.board, data.turn);
-        engine.ccall(EDAX_SYMBOLS.setBoard, "void", ["string"], [position]);
-        engine.ccall(EDAX_SYMBOLS.setLevel, "void", ["number"], [data.level]);
-        const notation = engine.ccall(
-          EDAX_SYMBOLS.search,
-          "string",
-          [],
-          [],
-        ) as string;
-        post({
-          type: "bestMove",
-          requestId: data.requestId,
-          move: moveToIndex(notation),
-        });
+        const move = await runSearch(data.board, data.turn, data.level);
+        post({ type: "bestMove", requestId: data.requestId, move });
         break;
       }
     }
