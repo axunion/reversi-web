@@ -47,10 +47,14 @@ person must do the work and check the box before the loop can continue past it.
 
 ## M3 — Edax assets (spec 05)
 
-- [ ] **[MANUAL]** Obtain/build `edax.js` + `edax.wasm` + `eval.dat`, place under
-      `public/edax/` with `LICENSE` and `README.md` (spec 05 §1–4)
-- [ ] **[MANUAL]** Isolated smoke test of the build (spec 05 §3 note 4) before app
-      integration
+- [x] **[MANUAL]** Obtain/build `edax.js` + `edax.wasm` + `eval.dat`, place under
+      `public/edax/` with `LICENSE` and `README.md` (spec 05 §1–4) — built from
+      upstream `abulmo/edax-reversi` (Plan B, spec 05 §3's fallback route; the
+      recommended `libedax` fork turned out to be iOS/UIKit-only, not portable
+      to Wasm); see `public/edax/README.md` for the full reproduction record
+- [x] **[MANUAL]** Isolated smoke test of the build (spec 05 §3 note 4) before app
+      integration — verified via Node at levels 1/5/11 and with white to move;
+      see `public/edax/README.md`
 
 ## M4b — AI integration wiring, needs real binaries to verify end-to-end (spec 04)
 
