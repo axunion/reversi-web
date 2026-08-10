@@ -40,7 +40,7 @@ person must do the work and check the box before the loop can continue past it.
 ## M4a — AI protocol & client, no binaries needed (spec 04)
 
 - [x] `src/ai/protocol.ts`: `MainToWorker` / `WorkerToMain` types
-- [ ] `src/ai/difficulty.ts` + tests
+- [x] `src/ai/difficulty.ts` + tests
 - [ ] `src/ai/edax.worker.ts` + `boardToEdax`/`moveToIndex` unit tests (pure
       converters only — the Wasm engine call itself is exercised in M4b)
 - [ ] `src/ai/aiClient.ts` + mocked-worker requestId/cancel tests
