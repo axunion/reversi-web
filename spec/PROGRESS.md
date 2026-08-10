@@ -27,7 +27,7 @@ person must do the work and check the box before the loop can continue past it.
 - [x] `TurnIndicator` component (spec 02 §6)
 - [x] `GameScreen`: wires store + Board + TurnIndicator for PvP play
 - [x] `InGameMenu` (Kobalte `Dialog`) (spec 01 §3, spec 02 §6)
-- [ ] `ResultOverlay` (Kobalte `Dialog`, personalized AI-mode text) (spec 01 §3, spec 02 §6)
+- [x] `ResultOverlay` (Kobalte `Dialog`, personalized AI-mode text) (spec 01 §3, spec 02 §6)
 - [ ] `TitleScreen`: main menu + aiSetup step (Kobalte `RadioGroup` for difficulty/color)
       (spec 01 §2, spec 02 §5)
 - [ ] `App.tsx`: screen switching signal (spec 01 §1, §4)
