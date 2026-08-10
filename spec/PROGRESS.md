@@ -43,7 +43,7 @@ person must do the work and check the box before the loop can continue past it.
 - [x] `src/ai/difficulty.ts` + tests
 - [x] `src/ai/edax.worker.ts` + `boardToEdax`/`moveToIndex` unit tests (pure
       converters only — the Wasm engine call itself is exercised in M4b)
-- [ ] `src/ai/aiClient.ts` + mocked-worker requestId/cancel tests
+- [x] `src/ai/aiClient.ts` + mocked-worker requestId/cancel tests
 
 ## M3 — Edax assets (spec 05)
 

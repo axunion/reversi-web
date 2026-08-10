@@ -95,6 +95,7 @@ self.onmessage = async ({ data }: MessageEvent<MainToWorker>) => {
       type: "error",
       fatal: data.type === "init",
       message: error instanceof Error ? error.message : String(error),
+      requestId: data.type === "search" ? data.requestId : undefined,
     });
   }
 };

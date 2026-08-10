@@ -13,4 +13,4 @@ export type MainToWorker =
 export type WorkerToMain =
   | { type: "ready" }
   | { type: "bestMove"; requestId: number; move: number } // 0..63
-  | { type: "error"; fatal: boolean; message: string };
+  | { type: "error"; fatal: boolean; message: string; requestId?: number }; // requestId present iff the error is a reply to a "search"
