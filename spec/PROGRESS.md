@@ -26,7 +26,7 @@ person must do the work and check the box before the loop can continue past it.
 - [x] `createGameStore.ts` + store tests (spec 03 §4, test cases 16–19)
 - [x] `TurnIndicator` component (spec 02 §6)
 - [x] `GameScreen`: wires store + Board + TurnIndicator for PvP play
-- [ ] `InGameMenu` (Kobalte `Dialog`) (spec 01 §3, spec 02 §6)
+- [x] `InGameMenu` (Kobalte `Dialog`) (spec 01 §3, spec 02 §6)
 - [ ] `ResultOverlay` (Kobalte `Dialog`, personalized AI-mode text) (spec 01 §3, spec 02 §6)
 - [ ] `TitleScreen`: main menu + aiSetup step (Kobalte `RadioGroup` for difficulty/color)
       (spec 01 §2, spec 02 §5)
