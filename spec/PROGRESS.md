@@ -68,6 +68,6 @@ person must do the work and check the box before the loop can continue past it.
 
 ## M5 — Polish pass
 
-- [ ] `prefers-reduced-motion` handling (spec 02 §4, §8)
+- [x] `prefers-reduced-motion` handling (spec 02 §4, §8)
 - [ ] Focus/keyboard access audit on menus and controls
 - [ ] Visual checklist pass (spec 02 §8) and final `pnpm check` / `pnpm test` green

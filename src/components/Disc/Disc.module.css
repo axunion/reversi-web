@@ -43,3 +43,10 @@
     var(--disc-white) 70%
   );
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .disc {
+    transition: none;
+    animation: none;
+  }
+}
