@@ -1,19 +1,42 @@
-import { createSignal } from "solid-js";
-import "./App.css";
+import { createSignal, Match, Switch } from "solid-js";
+import { createAiClient } from "./ai/aiClient";
+import type { GameConfig } from "./logic/types";
+import GameScreen from "./screens/GameScreen/GameScreen";
+import TitleScreen from "./screens/TitleScreen/TitleScreen";
+
+type Screen = { name: "title" } | { name: "game"; config: GameConfig };
 
 function App() {
-  const [count, setCount] = createSignal(0);
+  const [screen, setScreen] = createSignal<Screen>({ name: "title" });
+  const [aiAvailable, setAiAvailable] = createSignal(false);
+
+  // spec 04 §6: aiAvailable is decided once, at App level, from a probe
+  // separate from any game's own aiClient (which GameScreen owns and disposes
+  // itself) - disposed as soon as the probe settles, since nothing else needs it.
+  const probeClient = createAiClient();
+  probeClient
+    .init()
+    .then(
+      () => setAiAvailable(true),
+      () => setAiAvailable(false),
+    )
+    .finally(() => probeClient.dispose());
 
   return (
-    <main>
-      <h1>vite-solid-template</h1>
-      <button type="button" onClick={() => setCount((c) => c + 1)}>
-        Count is {count()}
-      </button>
-      <p>
-        Edit <code>src/App.tsx</code> and save to test HMR
-      </p>
-    </main>
+    <Switch>
+      <Match when={screen().name === "title"}>
+        <TitleScreen
+          onStart={(config) => setScreen({ name: "game", config })}
+          aiAvailable={aiAvailable()}
+        />
+      </Match>
+      <Match when={screen().name === "game"}>
+        <GameScreen
+          config={(screen() as Extract<Screen, { name: "game" }>).config}
+          onQuit={() => setScreen({ name: "title" })}
+        />
+      </Match>
+    </Switch>
   );
 }
 

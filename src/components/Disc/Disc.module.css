@@ -1,0 +1,52 @@
+@keyframes pop-in {
+  from {
+    transform: scale(0.5);
+  }
+}
+
+.disc {
+  position: absolute;
+  inset: 8%; /* disc fills ~84% of the cell */
+  transform-style: preserve-3d;
+  transition: transform var(--flip-duration) var(--ease-pop);
+  animation: pop-in var(--flip-duration) var(--ease-pop);
+}
+
+.showWhite {
+  transform: rotateY(180deg);
+}
+
+.face {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  backface-visibility: hidden;
+  /* real drop shadow onto the felt */
+  box-shadow:
+    0 4px 6px rgb(0 0 0 / 0.45),
+    0 1px 2px rgb(0 0 0 / 0.6);
+}
+
+.black {
+  background: radial-gradient(
+    circle at 32% 28%,
+    var(--disc-black-hi),
+    var(--disc-black) 65%
+  );
+}
+
+.white {
+  transform: rotateY(180deg); /* pre-rotated back face */
+  background: radial-gradient(
+    circle at 32% 28%,
+    var(--disc-white-hi),
+    var(--disc-white) 70%
+  );
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .disc {
+    transition: none;
+    animation: none;
+  }
+}

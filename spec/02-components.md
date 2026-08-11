@@ -181,11 +181,11 @@ A disc is one element with two absolutely stacked faces; color changes are expre
 
 ## 8. Visual checklist (M5 exit criteria)
 
-- [ ] Discs show a convincing off-center gloss and cast a visible soft shadow.
-- [ ] Placing a stone pops it in; captured discs flip in a radiating staggered wave.
-- [ ] The flip is visibly 3D (edge-on midpoint), not a crossfade.
-- [ ] Star points sit exactly on the four line crossings.
-- [ ] Title → game → result → title runs with no layout shift and no scrollbars.
-- [ ] `prefers-reduced-motion` disables flips/pop-ins but the game stays fully playable.
-- [ ] Board is playable one-handed on a 360×640 viewport; desktop view is centered and
+- [x] Discs show a convincing off-center gloss and cast a visible soft shadow.
+- [x] Placing a stone pops it in; captured discs flip in a radiating staggered wave.
+- [x] The flip is visibly 3D (edge-on midpoint), not a crossfade.
+- [x] Star points sit exactly on the four line crossings.
+- [x] Title → game → result → title runs with no layout shift and no scrollbars.
+- [x] `prefers-reduced-motion` disables flips/pop-ins but the game stays fully playable.
+- [x] Board is playable one-handed on a 360×640 viewport; desktop view is centered and
       never stretched.

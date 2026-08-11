@@ -1,0 +1,112 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--overlay);
+  backdrop-filter: blur(4px);
+}
+
+.overlay[data-expanded] {
+  animation: fade-in 180ms ease-out;
+}
+
+.overlay[data-closed] {
+  animation: fade-out 180ms ease-in;
+}
+
+.content {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+  width: min(90vw, 320px);
+  padding: 24px;
+  background: var(--frame);
+  border-radius: var(--radius);
+  box-shadow: 0 20px 40px rgb(0 0 0 / 0.5);
+  transform: translate(-50%, -50%);
+}
+
+.content[data-expanded] {
+  animation: pop-in 180ms var(--ease-pop);
+}
+
+.content[data-closed] {
+  animation: pop-out 180ms ease-in;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.95);
+  }
+}
+
+@keyframes pop-out {
+  to {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.95);
+  }
+}
+
+.title {
+  margin: 0 0 4px;
+  color: var(--accent);
+  text-align: center;
+  letter-spacing: 0.05em;
+}
+
+.score {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  margin-bottom: 8px;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.side {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.glyph {
+  position: relative;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+}
+
+.button {
+  min-height: 48px;
+  padding: 0 16px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text);
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.button:hover,
+.button:focus-visible {
+  background: var(--accent);
+  color: var(--bg);
+  outline: none;
+}
