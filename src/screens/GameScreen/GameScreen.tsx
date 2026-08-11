@@ -88,6 +88,10 @@ function GameScreen(props: GameScreenProps) {
     const turn = store.state.turn;
     const animating = store.state.animating;
     const status = store.state.status;
+    // Tracked so a reset() during the AI's very first search still
+    // retriggers this effect, even in the one case where turn/animating/
+    // status all happen to already hold their post-reset values (createGameStore.ts).
+    void store.state.generation;
 
     if (!aiClient || !aiConfig || aiInitFailed()) return;
     if (status !== "playing" || animating) return;

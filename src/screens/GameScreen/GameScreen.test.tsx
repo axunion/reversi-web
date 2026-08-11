@@ -331,7 +331,7 @@ describe("GameScreen AI orchestration", () => {
     expect(buttons()[19].querySelector('[class*="disc"]')).not.toBeNull();
   });
 
-  it("Restart cancels an in-flight search: the board resets and a stale reply from the cancelled search never lands", async () => {
+  it("Restart cancels an in-flight search: the board resets, a stale reply never lands, and a fresh search follows", async () => {
     vi.useFakeTimers();
 
     const { container } = render(() => (
@@ -346,21 +346,29 @@ describe("GameScreen AI orchestration", () => {
     await Promise.resolve();
     const staleRequestId = workers[0].lastSearchRequestId();
 
+    // Restart during the AI's very first search of the game: turn/animating/
+    // status all already hold their post-reset values, so without the
+    // generation counter in createGameStore.ts, the AI effect would never
+    // re-run and no new search would ever be requested (a real soft-lock
+    // found during verification of this task).
     fireEvent.click(screen.getByLabelText("Menu"));
     fireEvent.click(screen.getByText("Restart"));
 
     // the stale reply, arriving after Restart, must never apply to the reset game
     workers[0].emit({ type: "bestMove", requestId: staleRequestId, move: 19 });
-    await vi.runAllTimersAsync();
+    await Promise.resolve();
 
     expect(buttons()[19].querySelector('[class*="disc"]')).toBeNull();
-    // store.reset() writes `thinking: false` directly as part of the state
-    // it replaces, which is why this passes independent of whether the AI
-    // effect's onCleanup ran. It deliberately does NOT assert that a new
-    // search gets posted afterward - see the reported gap in the verification
-    // notes: turn/animating/status are unchanged by this exact restart (AI
-    // was still on its very first move), so the effect never re-runs and no
-    // new search is ever requested.
+
+    // a fresh search must have been requested for the reset game, with a new
+    // requestId distinct from the cancelled one
+    const freshRequestId = workers[0].lastSearchRequestId();
+    expect(freshRequestId).not.toBe(staleRequestId);
+
+    workers[0].emit({ type: "bestMove", requestId: freshRequestId, move: 19 });
+    await vi.runAllTimersAsync();
+
+    expect(buttons()[19].querySelector('[class*="disc"]')).not.toBeNull();
     expect(screen.queryByText("Thinking…")).toBeNull();
   });
 

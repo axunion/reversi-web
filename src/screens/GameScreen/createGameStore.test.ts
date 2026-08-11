@@ -116,4 +116,22 @@ describe("createGameStore", () => {
 
     dispose();
   });
+
+  it("reset bumps generation even when nothing else in the state changes", () => {
+    let store!: ReturnType<typeof createGameStore>;
+    const dispose = createRoot((d) => {
+      store = createGameStore({ mode: "pvp" });
+      return d;
+    });
+
+    // reset() called with no moves played: board/turn/status/etc. all
+    // already hold their initial values, so generation is the only field
+    // guaranteed to change - this is what lets a consumer (GameScreen's AI
+    // orchestration effect) detect the reset even then.
+    const before = store.state.generation;
+    store.reset();
+    expect(store.state.generation).toBe(before + 1);
+
+    dispose();
+  });
 });

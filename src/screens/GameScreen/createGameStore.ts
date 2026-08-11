@@ -28,6 +28,12 @@ type GameState = {
   passMessage: Player | null;
   thinking: boolean;
   animating: boolean;
+  // Bumped on every reset(). Lets a consumer detect "the game was reset" even
+  // in the one case where every other field happens to end up unchanged: a
+  // Restart during the AI's very first search of a game (turn/animating/
+  // status all already hold their initial values, so nothing else here would
+  // otherwise flag the reset).
+  generation: number;
 };
 
 function chebyshevDistance(a: number, b: number): number {
@@ -38,7 +44,7 @@ function chebyshevDistance(a: number, b: number): number {
   return Math.max(Math.abs(rowA - rowB), Math.abs(colA - colB));
 }
 
-function initialState(): GameState {
+function initialState(generation: number): GameState {
   return {
     board: initialBoard(),
     turn: 1,
@@ -49,6 +55,7 @@ function initialState(): GameState {
     passMessage: null,
     thinking: false,
     animating: false,
+    generation,
   };
 }
 
@@ -56,7 +63,7 @@ function initialState(): GameState {
 // turn triggers the AI is GameScreen's job per spec 04 §5) but is part of the
 // spec's public signature, so it's kept for that future wiring.
 export function createGameStore(_config: GameConfig) {
-  const [state, setState] = createStore<GameState>(initialState());
+  const [state, setState] = createStore<GameState>(initialState(0));
 
   let animationTimeout: ReturnType<typeof setTimeout> | undefined;
   let passTimeout: ReturnType<typeof setTimeout> | undefined;
@@ -135,7 +142,7 @@ export function createGameStore(_config: GameConfig) {
   function reset() {
     clearTimeout(animationTimeout);
     clearTimeout(passTimeout);
-    setState(initialState());
+    setState(initialState(state.generation + 1));
   }
 
   function setThinking(thinking: boolean) {
