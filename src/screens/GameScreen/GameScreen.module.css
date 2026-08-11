@@ -29,6 +29,11 @@
   opacity: 1;
 }
 
+.menuButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.3;
+}
+
 .button {
   min-height: 48px;
   padding: 0 16px;

@@ -50,7 +50,14 @@ function GameScreen(props: GameScreenProps) {
   );
 
   if (aiClient) {
-    aiClient.init().catch(() => setAiInitFailed(true));
+    aiClient.init().catch(() => {
+      setAiInitFailed(true);
+      // Force the in-game menu closed: it's still fully interactive (Kobalte's
+      // Dialog doesn't know about this failure), and its Restart button resets
+      // the game without clearing aiInitFailed, which would otherwise soft-lock
+      // the board forever (Board's `disabled` memo stays true regardless).
+      setMenuOpen(false);
+    });
     onCleanup(() => aiClient.dispose());
   }
 
@@ -133,6 +140,10 @@ function GameScreen(props: GameScreenProps) {
         if (!cancelled) {
           store.setThinking(false);
           setAiCrashed(true);
+          // Same reasoning as the init-failure branch above: force the menu
+          // closed so Restart can't reach a state where the board is
+          // permanently disabled without aiCrashed ever being cleared.
+          setMenuOpen(false);
         }
       }
     })();
@@ -163,6 +174,7 @@ function GameScreen(props: GameScreenProps) {
         type="button"
         class={styles.menuButton}
         aria-label="Menu"
+        disabled={aiInitFailed() || aiCrashed()}
         onClick={() => setMenuOpen(true)}
       >
         <Menu size={20} />

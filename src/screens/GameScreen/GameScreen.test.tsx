@@ -297,6 +297,89 @@ describe("GameScreen AI orchestration", () => {
       expect(screen.getByText("The computer opponent crashed.")).not.toBeNull();
     });
     expect((buttons()[0] as HTMLButtonElement).disabled).toBe(true);
+    // Regression check: without disabling the menu button here too, a player
+    // could still open InGameMenu from behind the crash overlay and Restart,
+    // which resets the board but never clears aiCrashed - soft-locking it.
+    expect((screen.getByLabelText("Menu") as HTMLButtonElement).disabled).toBe(
+      true,
+    );
+  });
+
+  it("closes an already-open menu when the AI crashes, so Restart can't reach a permanently disabled board", async () => {
+    render(() => (
+      <GameScreen
+        config={{ mode: "ai", difficulty: "easy", playerColor: 2 }}
+        onQuit={() => {}}
+      />
+    ));
+
+    fireEvent.click(screen.getByLabelText("Menu"));
+    const dialog = screen.getByRole("dialog");
+    expect(dialog.hasAttribute("data-closed")).toBe(false);
+
+    workers[0].emit({ type: "ready" });
+    await Promise.resolve();
+
+    const firstRequestId = workers[0].lastSearchRequestId();
+    workers[0].emit({
+      type: "error",
+      fatal: false,
+      requestId: firstRequestId,
+      message: "search failed",
+    });
+
+    await waitFor(() => {
+      expect(
+        workers[0].postMessage.mock.calls.filter(([m]) => m.type === "search"),
+      ).toHaveLength(2);
+    });
+    const secondRequestId = workers[0].lastSearchRequestId();
+    workers[0].emit({
+      type: "error",
+      fatal: false,
+      requestId: secondRequestId,
+      message: "search failed again",
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("The computer opponent crashed.")).not.toBeNull();
+    });
+    expect(dialog.hasAttribute("data-closed")).toBe(true);
+  });
+
+  it("disables the menu button once AI init fails, so the menu can't be opened from behind the error banner", async () => {
+    render(() => (
+      <GameScreen
+        config={{ mode: "ai", difficulty: "easy", playerColor: 2 }}
+        onQuit={() => {}}
+      />
+    ));
+
+    const menuButton = screen.getByLabelText("Menu") as HTMLButtonElement;
+    expect(menuButton.disabled).toBe(false);
+
+    // Same race as the aiCrashed regression above: open the menu first, so a
+    // failure that arrives while it's already open has to force it closed
+    // rather than merely disabling the trigger button. (getByLabelText("Menu")
+    // can't be reused once the dialog is open - its title is also "Menu",
+    // which then matches too.)
+    fireEvent.click(menuButton);
+    const dialog = screen.getByRole("dialog");
+    expect(dialog.hasAttribute("data-closed")).toBe(false);
+
+    workers[0].emit({
+      type: "error",
+      fatal: true,
+      message: "worker failed to load",
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("The computer opponent could not start."),
+      ).not.toBeNull();
+    });
+    expect(menuButton.disabled).toBe(true);
+    expect(dialog.hasAttribute("data-closed")).toBe(true);
   });
 
   it("defers an AI move that resolves while the menu is open, and applies it once the menu closes", async () => {
