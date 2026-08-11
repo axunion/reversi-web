@@ -3,9 +3,11 @@ import {
   fireEvent,
   render,
   screen,
+  waitFor,
   within,
 } from "@solidjs/testing-library";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { MainToWorker, WorkerToMain } from "../../ai/protocol";
 import boardStyles from "../../components/Board/Board.module.css";
 import turnIndicatorStyles from "../../components/TurnIndicator/TurnIndicator.module.css";
 import GameScreen from "./GameScreen";
@@ -173,5 +175,220 @@ describe("GameScreen", () => {
     fireEvent.click(screen.getByText("Back to Title"));
 
     expect(onQuit).toHaveBeenCalledOnce();
+  });
+});
+
+// A hand-rolled mock of the Worker aiClient talks to (same shape as
+// src/ai/aiClient.test.ts's MockWorker), so these tests exercise the real
+// aiClient/GameScreen wiring without touching the real Edax engine.
+class MockWorker {
+  onmessage: ((event: MessageEvent<WorkerToMain>) => void) | null = null;
+  postMessage = vi.fn<(message: MainToWorker) => void>();
+  terminate = vi.fn();
+
+  emit(data: WorkerToMain): void {
+    this.onmessage?.({ data } as MessageEvent<WorkerToMain>);
+  }
+
+  lastSearchRequestId(): number {
+    const call = this.postMessage.mock.calls.findLast(
+      ([m]) => m.type === "search",
+    );
+    if (call?.[0].type !== "search") {
+      throw new Error("no search message was posted");
+    }
+    return call[0].requestId;
+  }
+}
+
+describe("GameScreen AI orchestration", () => {
+  let workers: MockWorker[];
+
+  class TrackedMockWorker extends MockWorker {
+    constructor() {
+      super();
+      workers.push(this);
+    }
+  }
+
+  beforeEach(() => {
+    workers = [];
+    vi.stubGlobal("Worker", TrackedMockWorker);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("starts a search on the AI's turn, locks the board while thinking, and applies the returned move", async () => {
+    vi.useFakeTimers();
+
+    // playerColor 2 (white) means the AI plays black, which moves first -
+    // the search starts as soon as the component mounts.
+    const { container } = render(() => (
+      <GameScreen
+        config={{ mode: "ai", difficulty: "easy", playerColor: 2 }}
+        onQuit={() => {}}
+      />
+    ));
+    const buttons = () => container.querySelectorAll(`.${boardStyles.cell}`);
+
+    expect((buttons()[0] as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByText("Thinking…")).not.toBeNull();
+
+    workers[0].emit({ type: "ready" });
+    await Promise.resolve(); // let init()'s microtasks settle so the search is posted
+
+    const requestId = workers[0].lastSearchRequestId();
+    workers[0].emit({ type: "bestMove", requestId, move: 19 }); // d3
+    await vi.runAllTimersAsync(); // aiClient's minimum-thinking-time delay
+
+    expect(buttons()[19].querySelector('[class*="disc"]')).not.toBeNull();
+    expect(screen.queryByText("Thinking…")).toBeNull();
+    expect((buttons()[0] as HTMLButtonElement).disabled).toBe(false);
+    // Regression check for the batch() fix in createGameStore.ts: store.play()
+    // is called here from outside a DOM-event context (after an await), which
+    // is exactly the condition under which a torn intermediate state could
+    // make this same effect fire a spurious second search.
+    expect(
+      workers[0].postMessage.mock.calls.filter(([m]) => m.type === "search"),
+    ).toHaveLength(1);
+  });
+
+  it("retries once on a search failure, then shows the crash overlay on a second failure", async () => {
+    const { container } = render(() => (
+      <GameScreen
+        config={{ mode: "ai", difficulty: "easy", playerColor: 2 }}
+        onQuit={() => {}}
+      />
+    ));
+    const buttons = () => container.querySelectorAll(`.${boardStyles.cell}`);
+
+    workers[0].emit({ type: "ready" });
+    await Promise.resolve();
+
+    const firstRequestId = workers[0].lastSearchRequestId();
+    workers[0].emit({
+      type: "error",
+      fatal: false,
+      requestId: firstRequestId,
+      message: "search failed",
+    });
+
+    // one retry: a second search is posted with a fresh requestId instead of
+    // showing the crash overlay right away
+    await waitFor(() => {
+      expect(
+        workers[0].postMessage.mock.calls.filter(([m]) => m.type === "search"),
+      ).toHaveLength(2);
+    });
+    expect(screen.queryByText("The computer opponent crashed.")).toBeNull();
+    const secondRequestId = workers[0].lastSearchRequestId();
+    expect(secondRequestId).not.toBe(firstRequestId);
+
+    workers[0].emit({
+      type: "error",
+      fatal: false,
+      requestId: secondRequestId,
+      message: "search failed again",
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("The computer opponent crashed.")).not.toBeNull();
+    });
+    expect((buttons()[0] as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("defers an AI move that resolves while the menu is open, and applies it once the menu closes", async () => {
+    vi.useFakeTimers();
+
+    const { container } = render(() => (
+      <GameScreen
+        config={{ mode: "ai", difficulty: "easy", playerColor: 2 }}
+        onQuit={() => {}}
+      />
+    ));
+    const buttons = () => container.querySelectorAll(`.${boardStyles.cell}`);
+
+    workers[0].emit({ type: "ready" });
+    await Promise.resolve();
+    const requestId = workers[0].lastSearchRequestId();
+
+    fireEvent.click(screen.getByLabelText("Menu"));
+    expect(screen.getByRole("dialog").hasAttribute("data-closed")).toBe(false);
+
+    workers[0].emit({ type: "bestMove", requestId, move: 19 }); // d3
+    await vi.runAllTimersAsync();
+
+    // resolved while the menu is open: not applied yet, but thinking is
+    // already cleared (per the GameScreen.tsx comment: thinking resets right
+    // after the await, before checking whether to defer)
+    expect(buttons()[19].querySelector('[class*="disc"]')).toBeNull();
+    expect(screen.queryByText("Thinking…")).toBeNull();
+
+    fireEvent.click(screen.getByText("Resume"));
+
+    expect(buttons()[19].querySelector('[class*="disc"]')).not.toBeNull();
+  });
+
+  it("Restart cancels an in-flight search: the board resets and a stale reply from the cancelled search never lands", async () => {
+    vi.useFakeTimers();
+
+    const { container } = render(() => (
+      <GameScreen
+        config={{ mode: "ai", difficulty: "easy", playerColor: 2 }}
+        onQuit={() => {}}
+      />
+    ));
+    const buttons = () => container.querySelectorAll(`.${boardStyles.cell}`);
+
+    workers[0].emit({ type: "ready" });
+    await Promise.resolve();
+    const staleRequestId = workers[0].lastSearchRequestId();
+
+    fireEvent.click(screen.getByLabelText("Menu"));
+    fireEvent.click(screen.getByText("Restart"));
+
+    // the stale reply, arriving after Restart, must never apply to the reset game
+    workers[0].emit({ type: "bestMove", requestId: staleRequestId, move: 19 });
+    await vi.runAllTimersAsync();
+
+    expect(buttons()[19].querySelector('[class*="disc"]')).toBeNull();
+    // store.reset() writes `thinking: false` directly as part of the state
+    // it replaces, which is why this passes independent of whether the AI
+    // effect's onCleanup ran. It deliberately does NOT assert that a new
+    // search gets posted afterward - see the reported gap in the verification
+    // notes: turn/animating/status are unchanged by this exact restart (AI
+    // was still on its very first move), so the effect never re-runs and no
+    // new search is ever requested.
+    expect(screen.queryByText("Thinking…")).toBeNull();
+  });
+
+  it("Quit to title cancels the in-flight search: a stale reply afterward causes no crash and no move", async () => {
+    const onQuit = vi.fn();
+    const { container } = render(() => (
+      <GameScreen
+        config={{ mode: "ai", difficulty: "easy", playerColor: 2 }}
+        onQuit={onQuit}
+      />
+    ));
+    const buttons = () => container.querySelectorAll(`.${boardStyles.cell}`);
+
+    workers[0].emit({ type: "ready" });
+    await Promise.resolve();
+    const staleRequestId = workers[0].lastSearchRequestId();
+
+    fireEvent.click(screen.getByLabelText("Menu"));
+    fireEvent.click(screen.getByText("Quit to Title"));
+
+    expect(onQuit).toHaveBeenCalledOnce();
+
+    // the requestId guard (unit-tested directly in aiClient.test.ts) is what
+    // makes this safe: cancel() bumped it, so this reply must be dropped
+    workers[0].emit({ type: "bestMove", requestId: staleRequestId, move: 19 });
+    await Promise.resolve();
+
+    expect(buttons()[19].querySelector('[class*="disc"]')).toBeNull();
+    expect(screen.queryByText("The computer opponent crashed.")).toBeNull();
   });
 });

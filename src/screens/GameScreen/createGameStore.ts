@@ -1,4 +1,4 @@
-import { createMemo, onCleanup } from "solid-js";
+import { batch, createMemo, onCleanup } from "solid-js";
 import { createStore } from "solid-js/store";
 import {
   applyMove,
@@ -110,15 +110,25 @@ export function createGameStore(_config: GameConfig) {
       if (delay > maxDelay) maxDelay = delay;
     }
 
-    setState("board", board);
-    setState("lastMove", index);
-    setState("flipDelays", flipDelays);
-    setState("animating", true);
+    // batch(): play() can be invoked from outside a Solid-tracked context (the
+    // AI orchestration effect calls it after an await, not from a DOM event),
+    // where Solid doesn't auto-batch consecutive setState calls. Without this,
+    // an effect that reads more than one of these fields can observe a torn
+    // intermediate state - e.g. animating already false but turn not yet
+    // updated - and react to it as if it were a real, settled state.
+    batch(() => {
+      setState("board", board);
+      setState("lastMove", index);
+      setState("flipDelays", flipDelays);
+      setState("animating", true);
+    });
 
     clearTimeout(animationTimeout);
     animationTimeout = setTimeout(() => {
-      setState("animating", false);
-      finishMove(mover, board);
+      batch(() => {
+        setState("animating", false);
+        finishMove(mover, board);
+      });
     }, maxDelay + FLIP_DURATION_MS);
   }
 
@@ -128,5 +138,9 @@ export function createGameStore(_config: GameConfig) {
     setState(initialState());
   }
 
-  return { state, legalMoves, score, play, reset };
+  function setThinking(thinking: boolean) {
+    setState("thinking", thinking);
+  }
+
+  return { state, legalMoves, score, play, reset, setThinking };
 }

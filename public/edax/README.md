@@ -47,8 +47,23 @@ emcc bit.c board.c move.c crc32c.c hash.c ybwc.c eval.c endgame.c midgame.c root
   -s INVOKE_RUN=0 \
   -s EXIT_RUNTIME=1 \
   -s EXPORTED_RUNTIME_METHODS=callMain,FS \
+  -s STACK_SIZE=8388608 \
   -o edax.js
 ```
+
+`STACK_SIZE=8388608` (8 MiB) overrides Emscripten's 64 KiB default. Edax's
+alpha-beta search recurses deeply enough that the default stack overflows
+on real positions a few moves into a game, at any difficulty level — the
+opening position alone doesn't reach deep enough to trigger it, which is
+why an isolated single-position smoke test missed this (see "Smoke test"
+below). Without `ASSERTIONS`/`SAFE_HEAP`, the overflow doesn't surface as
+a stack-overflow error at all: it silently corrupts memory, which then
+crashes on a *later*, unrelated-looking WebAssembly function-table lookup
+with a generic `null function or function signature mismatch` — a classic
+Emscripten symptom of stack corruption, not a hint that stack size is the
+actual problem. 8 MiB was not tuned to a minimum; it's a generously large
+value confirmed to run a 10-move game across all three difficulty levels
+(spec 04 §3's 1/5/11) without overflowing again.
 
 `ENVIRONMENT=worker` matches the actual runtime (`src/ai/edax.worker.ts`
 runs inside a Web Worker). An earlier build of this file used
@@ -149,3 +164,14 @@ Two layers, both passing:
    request's promise is left permanently unsettled while the new one
    resolves correctly, matching spec 04 §4's requestId-guard contract
    against the real engine, not just the mocked-worker unit tests.
+3. **Multi-move real game, all difficulty levels** (same Playwright/Chromium
+   setup) — this is what caught the stack-overflow bug above: single-search
+   smoke tests from the opening position never reach the recursion depth
+   where it manifests. Played a full 10-move sequence through real
+   `rules.ts` logic, cycling levels 1/5/11 each move (each a genuine
+   `aiClient.getBestMove()` call against the real engine), with every
+   returned move validated as legal via `getLegalMoves`. Also driven
+   through the actual rendered app (`GameScreen`'s AI orchestration
+   effect, not just `aiClient.ts` directly): clicked real board cells
+   across two full human/AI move pairs and confirmed no crash overlay
+   appeared and the board reached the expected disc count each time.

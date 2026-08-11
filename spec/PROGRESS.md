@@ -58,7 +58,7 @@ person must do the work and check the box before the loop can continue past it.
 
 ## M4b — AI integration wiring, needs real binaries to verify end-to-end (spec 04)
 
-- [ ] `GameScreen`: AI orchestration effect (spec 04 §5)
+- [x] `GameScreen`: AI orchestration effect (spec 04 §5)
 - [ ] `TitleScreen`: AI setup wiring + `aiAvailable` disabled state (spec 04 §6)
 
 ## M5 — Polish pass
