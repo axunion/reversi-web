@@ -59,7 +59,12 @@ person must do the work and check the box before the loop can continue past it.
 ## M4b — AI integration wiring, needs real binaries to verify end-to-end (spec 04)
 
 - [x] `GameScreen`: AI orchestration effect (spec 04 §5)
-- [ ] `TitleScreen`: AI setup wiring + `aiAvailable` disabled state (spec 04 §6)
+- [x] `TitleScreen`: AI setup wiring + `aiAvailable` disabled state (spec 04 §6)
+      <!-- PLAUSIBLE (unresolved): App.test.tsx's MockWorker/TrackedMockWorker is
+           now duplicated a third time (also in aiClient.test.ts and
+           GameScreen.test.tsx) - a candidate for a shared test util, not fixed
+           here per CLAUDE.md's guidance to leave PLAUSIBLE findings unresolved. -->
+
 
 ## M5 — Polish pass
 
