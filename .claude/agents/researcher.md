@@ -5,8 +5,9 @@ tools: WebFetch, WebSearch, Read, mcp__context7
 model: sonnet
 mcpServers:
   context7:
-    type: http
-    url: https://mcp.context7.com/mcp
+    type: stdio
+    command: npx
+    args: ["-y", "@upstash/context7-mcp"]
 ---
 
 You answer the questions this codebase can't answer about itself: how a third-party

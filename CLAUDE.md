@@ -68,46 +68,37 @@ Four project agents live in `.claude/agents/`, alongside Claude Code's built-in 
 | `tester` | Runs `pnpm test` / `pnpm check` / `pnpm test:e2e`, and writes missing test cases. Test files only. |
 | `inspector` | Renders the app in a disposable browser and inspects the result across viewports. |
 
-**None of them writes production code, and that is on purpose.** Implementation always
-happens in the main conversation, at every tier below. A write agent enforces no useful
-tool restriction (it needs nearly every tool), its real product is the working tree
-rather than the summary it hands back, and each fix pass would re-spawn it with no
-memory of the code it just wrote. What the read-only agents give you — an opinion from
-something that didn't write the code — is exactly what survives the handoff.
+None writes production code — implementation always stays in the main conversation. A
+write agent would need nearly every tool anyway, and its real product would be the
+working tree rather than a summary; what the read-only agents give instead is an
+opinion from something that didn't write the code.
 
-How much scaffolding a change gets:
+Scaffolding scales with risk:
 
-1. **Trivial** (one-line fix, typo, config tweak): implement directly. No agents.
-2. **Non-trivial but contained** (a self-contained change in one area): implement
-   directly. Optionally run one research agent first — `Explore` to confirm an
-   established convention, `researcher` for an unfamiliar external API. Afterward, run
-   `reviewer` and `tester` in parallel **without asking first**. They're read-only and
-   test-only, so the cost of running them is low and they exist precisely to cover the
-   blind spot of reviewing your own work.
+1. **Trivial** (typo, config tweak): implement directly, no agents.
+2. **Non-trivial but contained**: implement directly, optionally researching first
+   (`Explore` or `researcher`), then run `reviewer` and `tester` in parallel **without
+   asking first** — low cost, since both are read-only/test-only.
 3. **Large, ambiguous, or high-risk** (spans many files, substantially touches
-   `src/logic/` or `src/ai/`, or the task itself is genuinely ambiguous): prefer the
-   full loop — research → implement → review + test, iterating on findings — with
-   `Explore` and `researcher` running in parallel up front. **Always confirm with the
-   user before starting.** The reason is cost, not risk: the sequence spawns four agents
-   and can loop up to three times. `/feature-loop <task>` packages this; it is
-   explicit-invocation-only.
+   `src/logic/` or `src/ai/`, or genuinely ambiguous): propose the built-in `/goal`
+   command rather than starting unprompted — cost and duration, not risk, is why this
+   needs asking. Give it a completion condition that explicitly requires `reviewer` and
+   `tester` passing (`/goal`'s evaluator doesn't otherwise know they exist, and the loop
+   would end right after implementation). Per turn: research (`Explore` + `researcher`
+   in parallel), implement, then `reviewer` + `tester` in parallel, until the evaluator
+   confirms.
 
-**Visual verification is a separate axis, not a fourth tier.** The tiers above track how
-risky a change is; whether to actually look at the rendered result tracks whether the
-change touches rendered UI, which cuts across all three. A tier-2 CSS tweak may need a
-look; a tier-3 worker refactor may render nothing. Three cases:
+**Visual verification is a separate axis, not a fourth tier** — keyed to whether a
+change touches rendered UI, not to how risky it is.
 
-- Change touches no rendered surface: skip — no browser involved.
-- Small, isolated, single-property UI tweak: a quick manual glance at `pnpm dev` is
-  enough.
-- Layout that varies by viewport, a change spanning components that share styles, or
-  chasing a reported visual bug: run `inspector`. It has no memory of the conversation,
-  so give it the full picture, and treat a fix as unverified until a re-run comes back
-  clean.
+- No rendered surface: skip.
+- Small, isolated UI tweak: a quick glance at `pnpm dev` is enough.
+- Viewport-dependent layout, multi-component styling, or a reported visual bug: run
+  `inspector` — it has no memory of the conversation, so give it full context, and treat
+  a fix as unverified until a clean re-run.
 
-Running `inspector` needs no confirmation, but it isn't automatic for every non-trivial
-UI change either — it costs a dev server and a browser session, so weigh it against
-these three cases each time.
+Needs no confirmation to run, but isn't automatic either — weigh it against the cases
+above each time.
 
 ## Commits
 
