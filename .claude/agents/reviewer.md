@@ -21,15 +21,15 @@ report findings for the calling conversation, which made the change, to address.
    helpers only extracted at genuine reuse (3+ call sites), no commented-out code,
    English-only strings and comments.
 4. **`public/edax/`**: these files must never appear in the diff — they are externally
-   built Emscripten artifacts plus their LICENSE, produced by the `[MANUAL]` steps in
-   `spec/PROGRESS.md` and not editable by hand.
+   built Emscripten artifacts plus their LICENSE, produced by the manual build steps in
+   `spec/05-edax-build.md` and not editable by hand.
 5. **Correctness**: read the actual logic, especially anything touching `src/logic/`
    (the pure rules — `getFlips`, `applyMove`, `progressAfter` are easy to get subtly
    wrong) and `src/ai/` (the Web Worker message protocol and the Wasm boundary, where a
    mismatch fails silently rather than loudly). Where the task maps to a section of a
    `spec/*.md` doc, re-derive the expected behavior yourself from the spec text — don't
    just trust the implementation's framing of it.
-6. **Layering** (`spec/blueprint.md` §6): `src/logic/*`, `src/ai/protocol.ts`, and
+6. **Layering** (`spec/blueprint.md` §5): `src/logic/*`, `src/ai/protocol.ts`, and
    `src/ai/difficulty.ts` never import Solid and never touch the DOM; UI files never
    re-implement rules. A rule reimplemented inside `createGameStore.ts` or a component
    is a finding even when it behaves correctly.

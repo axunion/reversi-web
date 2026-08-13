@@ -89,9 +89,8 @@ How much scaffolding a change gets:
    full loop — research → implement → review + test, iterating on findings — with
    `Explore` and `researcher` running in parallel up front. **Always confirm with the
    user before starting.** The reason is cost, not risk: the sequence spawns four agents
-   and can loop up to three times. `/feature-loop <task>` packages this;
-   `/ship-next-task` is the same shape driven from `spec/PROGRESS.md`, ending in a
-   commit. Both are explicit-invocation-only.
+   and can loop up to three times. `/feature-loop <task>` packages this; it is
+   explicit-invocation-only.
 
 **Visual verification is a separate axis, not a fourth tier.** The tiers above track how
 risky a change is; whether to actually look at the rendered result tracks whether the

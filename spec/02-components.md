@@ -37,30 +37,8 @@ separate `Cell` component is not needed — the only stateful visual inside a ce
 
 ## 2. Design tokens (`src/index.css`)
 
-Global file contains only: a minimal reset, `:root` tokens, and body background.
-
-```css
-:root {
-  /* board */
-  --felt: #1b6b45;             /* deep felt green */
-  --felt-dark: #14523a;        /* cell shading / vignette */
-  --grid-line: #0e3d2b;
-  --frame: #241a12;            /* dark wood frame around the board */
-  /* discs */
-  --disc-black-hi: #5a5a5a; --disc-black: #111;
-  --disc-white-hi: #ffffff; --disc-white: #d8d8d4;
-  /* ui */
-  --bg: #101614;               /* page background, near-black green */
-  --text: #e8e6e0;
-  --accent: #e3b23c;           /* gold — highlights, title, buttons */
-  --overlay: rgb(0 0 0 / 0.55);
-  /* motion */
-  --flip-duration: 500ms;
-  --flip-stagger: 60ms;
-  --ease-pop: cubic-bezier(.2, 1.4, .4, 1);
-  --radius: 12px;
-}
-```
+Global file contains only: a minimal reset, `:root` tokens, and body background — see
+`src/index.css` for the current token values.
 
 Page background is a subtle `radial-gradient(var(--bg) → black)` vignette so the board
 appears lit from above.
@@ -87,42 +65,8 @@ appears lit from above.
 ## 4. Disc and the 3D flip (`Disc.module.css`)
 
 A disc is one element with two absolutely stacked faces; color changes are expressed
-*only* by rotating the parent, so every color change animates for free.
-
-```tsx
-// Disc.tsx (shape)
-<div class={styles.disc}
-     classList={{ [styles.showWhite]: props.player === 2 }}
-     style={{ "transition-delay": `${props.flipDelayMs}ms` }}>
-  <div class={`${styles.face} ${styles.black}`} />
-  <div class={`${styles.face} ${styles.white}`} />
-</div>
-```
-
-```css
-.disc {
-  position: absolute; inset: 8%;            /* disc fills ~84% of the cell */
-  transform-style: preserve-3d;
-  transition: transform var(--flip-duration) var(--ease-pop);
-}
-.showWhite { transform: rotateY(180deg); }
-
-.face {
-  position: absolute; inset: 0; border-radius: 50%;
-  backface-visibility: hidden;
-  /* real drop shadow onto the felt */
-  box-shadow: 0 4px 6px rgb(0 0 0 / 0.45), 0 1px 2px rgb(0 0 0 / 0.6);
-}
-.black {
-  background: radial-gradient(circle at 32% 28%,
-              var(--disc-black-hi), var(--disc-black) 65%);
-}
-.white {
-  transform: rotateY(180deg);               /* pre-rotated back face */
-  background: radial-gradient(circle at 32% 28%,
-              var(--disc-white-hi), var(--disc-white) 70%);
-}
-```
+*only* by rotating the parent, so every color change animates for free — see `Disc.tsx`
+/ `Disc.module.css` for the current implementation.
 
 - **Gloss**: the off-center `radial-gradient` highlight reads as curved plastic; no
   images anywhere.

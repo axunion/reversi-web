@@ -1,8 +1,8 @@
 # Reversi Web — Master Blueprint
 
 Technical blueprint for a browser Reversi game with local PvP and AI (Edax/Wasm) play.
-This document is the entry point: it fixes the goal, the stack, the target file layout,
-and the implementation roadmap. Details live in the numbered specs listed below.
+This document is the entry point: it fixes the goal, the stack, and the target file
+layout. Details live in the numbered specs listed below.
 
 ## 1. Goal
 
@@ -33,9 +33,6 @@ Already scaffolded in this repo; do not add or replace tooling.
 | Lint/format| Biome (`pnpm check` / `pnpm fix`)                   |
 | UI primitives | `@kobalte/core` (headless Dialog, RadioGroup) + `lucide-solid` (icons) — see spec 02 §6 |
 | AI engine  | Edax compiled to Wasm, run inside a Web Worker      |
-
-The template's demo content (`App.css`, counter in `App.tsx`, `App.test.tsx`) is replaced
-during implementation.
 
 ## 3. Target directory layout
 
@@ -82,8 +79,6 @@ src/
     difficulty.ts    # Difficulty -> Edax level mapping
     aiClient.ts      # promise-based wrapper around the worker
     edax.worker.ts   # Web Worker: loads Edax Wasm, answers search requests
-scripts/
-  build-edax.md      # (documented in spec/05; actual build happens outside Vite)
 ```
 
 One concern per file; keep files under ~300 lines.
@@ -98,46 +93,11 @@ One concern per file; keep files under ~300 lines.
 | [04-ai-worker.md](./04-ai-worker.md) | Edax Wasm × Web Worker architecture: message protocol, difficulty mapping, thinking-state UX, load/error handling. |
 | [05-edax-build.md](./05-edax-build.md) | How to obtain/build `edax.wasm` + `eval.dat` with Emscripten and where to place them. |
 
-## 5. Implementation roadmap
-
-Implement in this order; each milestone has a verifiable exit criterion. Commit per
-milestone.
-
-### M1 — Core rules (spec 03, pure part)
-Write `src/logic/types.ts`, `src/logic/rules.ts`, and `rules.test.ts` together.
-**Done when:** `pnpm test` passes the full test list in spec 03 and `pnpm check` is clean.
-
-### M2 — Screens and visuals, PvP playable (specs 01, 02, 03 store part)
-Title screen, game screen, board/disc components with flip animation, in-game menu,
-result overlay. Game store wires the pure rules to the UI. PvP mode fully works.
-**Done when:** in `pnpm dev`, a full PvP game can be played to the end on a phone-sized
-viewport and on desktop: legal-move hints show, discs flip with the 3D animation, passes
-are announced, the result overlay appears, and rematch / back-to-title both work.
-
-### M3 — Edax assets (spec 05)
-Build (or fetch prebuilt) `edax.js` / `edax.wasm` / `eval.dat` and place them under
-`public/edax/`.
-**Done when:** the three files exist and a smoke script in the browser console can init
-the engine and return a move for the opening position.
-
-### M4 — AI integration (spec 04)
-Worker, protocol, client wrapper, difficulty selection on the title screen, thinking
-indicator, error fallback.
-**Done when:** an AI game at each difficulty can be played to the end without UI jank
-during flip animations, and killing the worker mid-game surfaces the error state instead
-of hanging.
-
-### M5 — Polish pass
-Motion timing, `prefers-reduced-motion`, focus/keyboard access on menus, final visual
-tuning against spec 02.
-**Done when:** `pnpm check` and `pnpm test` pass and the visual checklist at the end of
-spec 02 is satisfied.
-
-## 6. Conventions for the implementing AI
+## 5. Conventions for the implementing AI
 
 - Pure logic (`src/logic`, `src/ai/difficulty.ts`, `src/ai/protocol.ts`) never imports
   Solid; UI files never re-implement rules.
 - All user-facing strings are English (per repo language rule).
 - Write tests before or alongside each pure-logic function; UI is verified by playing
-  (M2/M4 exit criteria), not by snapshot tests.
+  the app, not by snapshot tests.
 - Do not introduce dependencies beyond what `package.json` already lists.

@@ -5,15 +5,10 @@ One typed signal in `App.tsx` is the single source of truth for "which screen".
 
 ## 1. Screen model
 
+`Player`, `Difficulty`, and `GameConfig` are defined once, in `src/logic/types.ts`
+(see spec 03 §1) — not repeated here.
+
 ```ts
-// src/logic/types.ts (shared, pure)
-export type Player = 1 | 2;                 // 1 = black, 2 = white
-export type Difficulty = "easy" | "normal" | "hard";
-
-export type GameConfig =
-  | { mode: "pvp" }
-  | { mode: "ai"; difficulty: Difficulty; playerColor: Player };
-
 // App-level screen state (App.tsx)
 type Screen =
   | { name: "title" }
