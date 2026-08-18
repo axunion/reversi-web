@@ -72,10 +72,16 @@
   gap: 6px;
 }
 
-.label {
-  color: var(--text);
-  font-size: 0.85rem;
-  opacity: 0.8;
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .segmented {
@@ -103,21 +109,30 @@
   color: var(--bg);
 }
 
+.itemControl[data-disabled] {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
 .itemLabel {
   cursor: pointer;
 }
 
-.backButton {
-  min-height: 44px;
-  border: none;
-  background: transparent;
-  color: var(--text);
-  opacity: 0.7;
-  cursor: pointer;
+.aiPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid rgb(227 178 60 / 0.25);
+  border-radius: var(--radius);
+  background: rgb(227 178 60 / 0.06);
+  transition: opacity 150ms ease-out;
 }
 
-.backButton:hover,
-.backButton:focus-visible {
-  outline: none;
+.aiPanel[data-disabled] {
+  opacity: 0.45;
+}
+
+.aiPanel .itemControl[data-disabled] {
   opacity: 1;
 }

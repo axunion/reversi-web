@@ -1,43 +1,24 @@
 import { cleanup, fireEvent, render, screen } from "@solidjs/testing-library";
+import { createSignal } from "solid-js";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import TitleScreen from "./TitleScreen";
 
 afterEach(cleanup);
 
 describe("TitleScreen", () => {
-  it("calls onStart with pvp config when Two Players is clicked", () => {
+  it("defaults to vs Player when AI is unavailable", () => {
     const onStart = vi.fn();
-    render(() => <TitleScreen onStart={onStart} aiAvailable={true} />);
+    render(() => <TitleScreen onStart={onStart} aiAvailable={false} />);
 
-    fireEvent.click(screen.getByText("Two Players"));
+    fireEvent.click(screen.getByText("Start Game"));
 
     expect(onStart).toHaveBeenCalledWith({ mode: "pvp" });
   });
 
-  it("shows the aiSetup step when Versus Computer is clicked and AI is available", () => {
-    render(() => <TitleScreen onStart={() => {}} aiAvailable={true} />);
-
-    expect(screen.queryByText("Start Game")).toBeNull();
-
-    fireEvent.click(screen.getByText("Versus Computer"));
-
-    expect(screen.getByText("Start Game")).not.toBeNull();
-  });
-
-  it("disables Versus Computer and shows a note when AI is unavailable", () => {
-    render(() => <TitleScreen onStart={() => {}} aiAvailable={false} />);
-
-    const button = screen.getByText("Versus Computer") as HTMLButtonElement;
-
-    expect(button.disabled).toBe(true);
-    expect(screen.getByText("Computer opponent unavailable")).not.toBeNull();
-  });
-
-  it("starts an AI game with default difficulty (normal) and color (black) when Start Game is clicked without changes", () => {
+  it("defaults to vs AI once available, with default difficulty (normal) and color (black)", () => {
     const onStart = vi.fn();
     render(() => <TitleScreen onStart={onStart} aiAvailable={true} />);
 
-    fireEvent.click(screen.getByText("Versus Computer"));
     fireEvent.click(screen.getByText("Start Game"));
 
     expect(onStart).toHaveBeenCalledWith({
@@ -47,11 +28,19 @@ describe("TitleScreen", () => {
     });
   });
 
+  it("does not start a game when vs Player is clicked", () => {
+    const onStart = vi.fn();
+    render(() => <TitleScreen onStart={onStart} aiAvailable={true} />);
+
+    fireEvent.click(screen.getByText("vs Player"));
+
+    expect(onStart).not.toHaveBeenCalled();
+  });
+
   it("passes the selected difficulty and color to onStart", () => {
     const onStart = vi.fn();
     render(() => <TitleScreen onStart={onStart} aiAvailable={true} />);
 
-    fireEvent.click(screen.getByText("Versus Computer"));
     fireEvent.click(screen.getByText("Hard"));
     fireEvent.click(screen.getByText("White"));
     fireEvent.click(screen.getByText("Start Game"));
@@ -63,15 +52,75 @@ describe("TitleScreen", () => {
     });
   });
 
-  it("returns to the main step when Back is clicked", () => {
+  it("starts a pvp game after switching away from the default vs AI selection", () => {
+    const onStart = vi.fn();
+    render(() => <TitleScreen onStart={onStart} aiAvailable={true} />);
+
+    fireEvent.click(screen.getByText("vs Player"));
+    fireEvent.click(screen.getByText("Start Game"));
+
+    expect(onStart).toHaveBeenCalledWith({ mode: "pvp" });
+  });
+
+  it("disables vs AI and shows a note when AI is unavailable", () => {
+    const onStart = vi.fn();
+    render(() => <TitleScreen onStart={onStart} aiAvailable={false} />);
+
+    const radio = screen.getByRole("radio", {
+      name: "vs AI",
+    }) as HTMLInputElement;
+
+    expect(radio.disabled).toBe(true);
+    expect(screen.getByText("Computer opponent unavailable")).not.toBeNull();
+
+    fireEvent.click(screen.getByText("vs AI"));
+    fireEvent.click(screen.getByText("Start Game"));
+
+    expect(onStart).toHaveBeenCalledWith({ mode: "pvp" });
+  });
+
+  it("keeps the AI options panel inert while vs Player is selected", () => {
+    const onStart = vi.fn();
+    render(() => <TitleScreen onStart={onStart} aiAvailable={true} />);
+
+    fireEvent.click(screen.getByText("vs Player"));
+
+    const hardRadio = screen.getByRole("radio", {
+      name: "Hard",
+    }) as HTMLInputElement;
+    expect(hardRadio.disabled).toBe(true);
+
+    fireEvent.click(screen.getByText("Hard"));
+    fireEvent.click(screen.getByText("vs AI"));
+    fireEvent.click(screen.getByText("Start Game"));
+
+    expect(onStart).toHaveBeenCalledWith({
+      mode: "ai",
+      difficulty: "normal",
+      playerColor: 1,
+    });
+  });
+
+  it("switches the default to vs AI once availability resolves, unless the player already chose", async () => {
+    const onStart = vi.fn();
+    const [aiAvailable, setAiAvailable] = createSignal(false);
+    render(() => <TitleScreen onStart={onStart} aiAvailable={aiAvailable()} />);
+
+    setAiAvailable(true);
+    await Promise.resolve();
+
+    fireEvent.click(screen.getByText("Start Game"));
+
+    expect(onStart).toHaveBeenCalledWith({
+      mode: "ai",
+      difficulty: "normal",
+      playerColor: 1,
+    });
+  });
+
+  it("has no step navigation", () => {
     render(() => <TitleScreen onStart={() => {}} aiAvailable={true} />);
 
-    fireEvent.click(screen.getByText("Versus Computer"));
-    expect(screen.getByText("Start Game")).not.toBeNull();
-
-    fireEvent.click(screen.getByText("Back"));
-
-    expect(screen.queryByText("Start Game")).toBeNull();
-    expect(screen.getByText("Two Players")).not.toBeNull();
+    expect(screen.queryByText("Back")).toBeNull();
   });
 });

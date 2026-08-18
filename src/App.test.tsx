@@ -6,25 +6,27 @@ import type { MainToWorker, WorkerToMain } from "./ai/protocol";
 afterEach(cleanup);
 
 describe("App", () => {
-  it("starts on the title screen and switches to the game screen on Two Players", () => {
+  it("starts on the title screen and switches to the game screen on vs Player", () => {
     render(() => <App />);
 
-    expect(screen.getByText("Two Players")).not.toBeNull();
+    expect(screen.getByText("vs Player")).not.toBeNull();
 
-    fireEvent.click(screen.getByText("Two Players"));
+    fireEvent.click(screen.getByText("vs Player"));
+    fireEvent.click(screen.getByText("Start Game"));
 
-    expect(screen.queryByText("Two Players")).toBeNull();
+    expect(screen.queryByText("vs Player")).toBeNull();
     expect(screen.getByLabelText("Menu")).not.toBeNull();
   });
 
   it("returns to the title screen via Quit to Title in the in-game menu", () => {
     render(() => <App />);
 
-    fireEvent.click(screen.getByText("Two Players"));
+    fireEvent.click(screen.getByText("vs Player"));
+    fireEvent.click(screen.getByText("Start Game"));
     fireEvent.click(screen.getByLabelText("Menu"));
     fireEvent.click(screen.getByText("Quit to Title"));
 
-    expect(screen.getByText("Two Players")).not.toBeNull();
+    expect(screen.getByText("vs Player")).not.toBeNull();
   });
 });
 
@@ -61,13 +63,15 @@ describe("App AI availability probe", () => {
     vi.unstubAllGlobals();
   });
 
-  it("starts with Versus Computer disabled, then enables it once the probe worker reports ready, and disposes the probe", async () => {
+  it("starts with vs AI disabled, then enables it once the probe worker reports ready, and disposes the probe", async () => {
     render(() => <App />);
 
-    const versusComputerButton = () =>
-      screen.getByText("Versus Computer") as HTMLButtonElement;
+    const versusComputerRadio = () =>
+      screen.getByRole("radio", {
+        name: "vs AI",
+      }) as HTMLInputElement;
 
-    expect(versusComputerButton().disabled).toBe(true);
+    expect(versusComputerRadio().disabled).toBe(true);
     expect(screen.getByText("Computer opponent unavailable")).not.toBeNull();
     expect(workers).toHaveLength(1);
 
@@ -75,16 +79,18 @@ describe("App AI availability probe", () => {
     await Promise.resolve(); // let the probe's init().then(...) settle
     await Promise.resolve(); // let the subsequent .finally(...) settle
 
-    expect(versusComputerButton().disabled).toBe(false);
+    expect(versusComputerRadio().disabled).toBe(false);
     expect(screen.queryByText("Computer opponent unavailable")).toBeNull();
     expect(workers[0].terminate).toHaveBeenCalledOnce();
   });
 
-  it("leaves Versus Computer disabled if the probe worker reports a fatal init error, and still disposes the probe", async () => {
+  it("leaves vs AI disabled if the probe worker reports a fatal init error, and still disposes the probe", async () => {
     render(() => <App />);
 
-    const versusComputerButton = () =>
-      screen.getByText("Versus Computer") as HTMLButtonElement;
+    const versusComputerRadio = () =>
+      screen.getByRole("radio", {
+        name: "vs AI",
+      }) as HTMLInputElement;
 
     workers[0].emit({
       type: "error",
@@ -94,7 +100,7 @@ describe("App AI availability probe", () => {
     await Promise.resolve(); // let the probe's init().then(...) settle
     await Promise.resolve(); // let the subsequent .finally(...) settle
 
-    expect(versusComputerButton().disabled).toBe(true);
+    expect(versusComputerRadio().disabled).toBe(true);
     expect(screen.getByText("Computer opponent unavailable")).not.toBeNull();
     expect(workers[0].terminate).toHaveBeenCalledOnce();
   });
