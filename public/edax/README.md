@@ -1,6 +1,6 @@
 # Edax build (public/edax/)
 
-Reproduction record for the binaries in this directory, per spec 05 §4.
+Reproduction record for the binaries in this directory.
 
 ## Contents
 
@@ -15,12 +15,11 @@ Reproduction record for the binaries in this directory, per spec 05 §4.
 - Commit: `14f048c05ddfa385b6bf954a9c2905bbe677e9d3` (2025-03-10)
 - `eval.dat`: `https://github.com/abulmo/edax-reversi/releases/download/v4.4/eval.7z`, extracted with `7z x eval.7z` (`data/eval.dat`).
 
-Spec 05's originally recommended `libedax` fork
-(`sensuikan1973/edax-reversi`) turned out to be an iOS/UIKit
-Objective-C wrapper (`libEdax4i`), not a portable C library — not
-usable as-is for a Wasm build. This build instead follows spec 05's
-documented fallback route (**Plan B**): the plain upstream console
-engine, driven through its own text protocol.
+The originally recommended `libedax` fork (`sensuikan1973/edax-reversi`)
+turned out to be an iOS/UIKit Objective-C wrapper (`libEdax4i`), not a
+portable C library — not usable as-is for a Wasm build. This build instead
+follows the fallback route (**Plan B**): the plain upstream console engine,
+driven through its own text protocol.
 
 ## Toolchain
 
@@ -63,7 +62,7 @@ with a generic `null function or function signature mismatch` — a classic
 Emscripten symptom of stack corruption, not a hint that stack size is the
 actual problem. 8 MiB was not tuned to a minimum; it's a generously large
 value confirmed to run a 10-move game across all three difficulty levels
-(spec 04 §3's 1/5/11) without overflowing again.
+(1/5/11) without overflowing again.
 
 `ENVIRONMENT=worker` matches the actual runtime (`src/ai/edax.worker.ts`
 runs inside a Web Worker). An earlier build of this file used
@@ -77,8 +76,8 @@ against a real Chromium before this was caught and fixed). Node is
 still useful for a *quick* local sanity check (see "Smoke test" below),
 but the shipped build must target `worker`.
 
-Single-threaded on purpose, per spec 05 §3: no `-pthread` means no
-`SharedArrayBuffer`, so the app needs no COOP/COEP headers.
+Single-threaded on purpose: no `-pthread` means no `SharedArrayBuffer`, so
+the app needs no COOP/COEP headers.
 
 ## `emscripten-portability.patch`
 
@@ -143,14 +142,13 @@ explicitly to `/edax/<file>` on every module instantiation.
 
 Two layers, both passing:
 
-1. **Node** (spec 05 §3 note 4) — quick local sanity check during
-   development: initialized the module with `eval.dat` in place, set
-   the opening position, searched at level 1, 5, and 11, and confirmed
-   the returned move was one of `d3`/`c4`/`f5`/`e6` in each case (also
-   confirmed white-to-move works). Level 11 (hard) completed in ~1s
-   from the opening position — well inside spec 04 §4's 30s
-   client-side timeout. This layer alone missed the `ENVIRONMENT=node`
-   mistake above, since Node satisfies `ENVIRONMENT_IS_NODE` by
+1. **Node** — quick local sanity check during development: initialized
+   the module with `eval.dat` in place, set the opening position, searched
+   at level 1, 5, and 11, and confirmed the returned move was one of
+   `d3`/`c4`/`f5`/`e6` in each case (also confirmed white-to-move works).
+   Level 11 (hard) completed in ~1s from the opening position — well
+   inside the app's 30s client-side timeout. This layer alone missed the
+   `ENVIRONMENT=node` mistake above, since Node satisfies `ENVIRONMENT_IS_NODE` by
    construction — it proves the C-level protocol works, not that the
    build loads in the real target runtime.
 2. **Real browser** (Playwright + Chromium, driving `pnpm dev`) —
@@ -162,7 +160,7 @@ Two layers, both passing:
    searches from different positions and levels, and a cancel-mid-search
    immediately followed by a new search — confirming the cancelled
    request's promise is left permanently unsettled while the new one
-   resolves correctly, matching spec 04 §4's requestId-guard contract
+   resolves correctly, matching `aiClient.ts`'s requestId-guard contract
    against the real engine, not just the mocked-worker unit tests.
 3. **Multi-move real game, all difficulty levels** (same Playwright/Chromium
    setup) — this is what caught the stack-overflow bug above: single-search

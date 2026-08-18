@@ -62,9 +62,9 @@ real browser (e.g. a browser-extension-based automation skill) for UI verificati
 6. **Sweep a viewport range for anything responsive**, not just one width — e.g.
    `[320, 360, 375, 414, 480, 768, 1024, 1280]`. A single narrow-width screenshot proves
    a fix works there; it says nothing about whether it broke a wider layout. Two widths
-   in that list are load-bearing per `spec/02-components.md` §8: 320px is the floor for
-   "no horizontal scrolling at any viewport ≥ 320px wide", and 360×640 is the viewport
-   the board must stay playable one-handed at.
+   in that list are load-bearing: 320px is the floor for "no horizontal scrolling at any
+   viewport ≥ 320px wide", and 360×640 is the viewport the board must stay playable
+   one-handed at.
 
 7. **Clean up before finishing**: delete the throwaway script from the project root,
    kill the dev server (same `lsof`/`kill` as step 1), and confirm `git status` is

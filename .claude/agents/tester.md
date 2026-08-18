@@ -29,10 +29,7 @@ them:
    exercise. Note that `playwright.config.ts` starts its own dev server via `webServer`,
    so don't launch `pnpm dev` yourself first — with `reuseExistingServer` a stale server
    would be reused silently.
-4. If the task's spec section defines a test list (e.g. `spec/03-core-logic.md` §5
-   enumerates the cases by number) and any listed case is missing, add it to the
-   relevant `*.test.ts` file before reporting the change as verified.
-5. If the change touches `src/logic/` or `src/ai/` without a corresponding unit test
+4. If the change touches `src/logic/` or `src/ai/` without a corresponding unit test
    update, write one following the existing test-file conventions in that directory.
 
 ## When to add a new e2e spec

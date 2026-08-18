@@ -64,7 +64,7 @@ Four project agents live in `.claude/agents/`, alongside Claude Code's built-in 
 | Agent | Role |
 | --- | --- |
 | `researcher` | External knowledge only: third-party API usage, version fit, deprecations. Never reads this codebase for conventions. |
-| `reviewer` | Reviews the pending diff against these conventions and against the relevant `spec/*.md` section. Read-only. |
+| `reviewer` | Reviews the pending diff against these conventions and general correctness. Read-only. |
 | `tester` | Runs `pnpm test` / `pnpm check` / `pnpm test:e2e`, and writes missing test cases. Test files only. |
 | `inspector` | Renders the app in a disposable browser and inspects the result across viewports. |
 
