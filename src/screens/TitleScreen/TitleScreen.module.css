@@ -118,6 +118,45 @@
   cursor: pointer;
 }
 
+.list {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+}
+
+.listItem {
+  border-bottom: 1px solid rgb(227 178 60 / 0.25);
+}
+
+.listItem:last-child {
+  border-bottom: none;
+}
+
+.listItemControl {
+  display: flex;
+  min-height: 40px;
+  align-items: center;
+  padding: 0 14px;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.listItemControl[data-checked] {
+  background: var(--accent);
+  color: var(--bg);
+}
+
+.listItemControl[data-disabled] {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.listItemLabel {
+  cursor: pointer;
+}
+
 .aiPanel {
   display: flex;
   flex-direction: column;

@@ -108,13 +108,13 @@ function TitleScreen(props: TitleScreenProps) {
             <RadioGroup.Label class={styles.srOnly}>
               Difficulty
             </RadioGroup.Label>
-            <div class={styles.segmented}>
+            <div class={styles.list}>
               <For each={DIFFICULTIES}>
                 {(level) => (
-                  <RadioGroup.Item value={level} class={styles.item}>
+                  <RadioGroup.Item value={level} class={styles.listItem}>
                     <RadioGroup.ItemInput />
-                    <RadioGroup.ItemControl class={styles.itemControl}>
-                      <RadioGroup.ItemLabel class={styles.itemLabel}>
+                    <RadioGroup.ItemControl class={styles.listItemControl}>
+                      <RadioGroup.ItemLabel class={styles.listItemLabel}>
                         {capitalize(level)}
                       </RadioGroup.ItemLabel>
                     </RadioGroup.ItemControl>
