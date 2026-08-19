@@ -24,6 +24,12 @@
   --flip-stagger: 60ms;
   --ease-pop: cubic-bezier(0.2, 1.4, 0.4, 1);
   --radius: 12px;
+  /* Max outer width of a content-column element on a screen that centers
+     itself (Board's frame, TurnIndicator, MatchInfo). calc(100vw - 48px)
+     reserves the screen's own 24px horizontal padding on each side, so at
+     narrow viewports this fills exactly the padded content box instead of
+     touching the viewport edge. */
+  --content-width: min(92vmin, 560px, calc(100vw - 48px));
 }
 
 *,

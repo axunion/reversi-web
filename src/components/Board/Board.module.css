@@ -15,10 +15,10 @@
   grid-template-columns: repeat(8, 1fr);
   gap: 2px;
   aspect-ratio: 1 / 1;
-  /* calc(100vw - 28px) only binds below ~350px viewport width, where 92vmin
-     plus .frame's 28px horizontal padding would otherwise overflow; above
-     that it's never the smallest term, so normal viewports are unaffected. */
-  width: min(92vmin, 560px, calc(100vw - 28px));
+  /* Subtracting .frame's 28px horizontal padding here means .frame's
+     rendered width always equals --content-width (src/index.css), keeping
+     it flush with the screen's padded content box at every viewport size. */
+  width: calc(var(--content-width) - 28px);
   background: var(--grid-line);
   border-radius: calc(var(--radius) - 6px);
   overflow: hidden;

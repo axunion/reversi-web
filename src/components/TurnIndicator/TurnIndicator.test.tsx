@@ -13,6 +13,7 @@ describe("TurnIndicator", () => {
         score={{ black: 5, white: 3 }}
         thinking={false}
         passMessage={null}
+        moveNumber={9}
       />
     ));
 
@@ -30,6 +31,7 @@ describe("TurnIndicator", () => {
         score={{ black: 5, white: 3 }}
         thinking={false}
         passMessage={null}
+        moveNumber={9}
       />
     ));
 
@@ -45,6 +47,7 @@ describe("TurnIndicator", () => {
         score={{ black: 2, white: 2 }}
         thinking={true}
         passMessage={null}
+        moveNumber={1}
       />
     ));
 
@@ -57,6 +60,7 @@ describe("TurnIndicator", () => {
         score={{ black: 2, white: 2 }}
         thinking={false}
         passMessage={null}
+        moveNumber={1}
       />
     ));
 
@@ -70,6 +74,7 @@ describe("TurnIndicator", () => {
         score={{ black: 2, white: 2 }}
         thinking={false}
         passMessage={2}
+        moveNumber={1}
       />
     ));
 
@@ -82,9 +87,56 @@ describe("TurnIndicator", () => {
         score={{ black: 2, white: 2 }}
         thinking={false}
         passMessage={null}
+        moveNumber={1}
       />
     ));
 
     expect(noPass.querySelector(`.${styles.pass}`)).toBeNull();
+  });
+
+  it("shows Pass over Thinking when both are true, so a skipped turn is never silently swallowed", () => {
+    const { container } = render(() => (
+      <TurnIndicator
+        turn={1}
+        score={{ black: 2, white: 2 }}
+        thinking={true}
+        passMessage={2}
+        moveNumber={1}
+      />
+    ));
+
+    expect(container.querySelector(`.${styles.pass}`)).not.toBeNull();
+    expect(container.querySelector(`.${styles.thinking}`)).toBeNull();
+  });
+
+  it("shows the move number when neither thinking nor passing, and it yields to both", () => {
+    const { container, unmount } = render(() => (
+      <TurnIndicator
+        turn={1}
+        score={{ black: 2, white: 2 }}
+        thinking={false}
+        passMessage={null}
+        moveNumber={7}
+      />
+    ));
+
+    expect(container.querySelector(`.${styles.status}`)?.textContent).toBe(
+      "Move 7",
+    );
+    unmount();
+
+    const { container: thinking } = render(() => (
+      <TurnIndicator
+        turn={1}
+        score={{ black: 2, white: 2 }}
+        thinking={true}
+        passMessage={null}
+        moveNumber={7}
+      />
+    ));
+
+    expect(thinking.querySelector(`.${styles.status}`)?.textContent).not.toBe(
+      "Move 7",
+    );
   });
 });

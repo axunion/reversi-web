@@ -11,9 +11,10 @@ import { createAiClient } from "../../ai/aiClient";
 import { edaxLevel } from "../../ai/difficulty";
 import Board from "../../components/Board/Board";
 import InGameMenu from "../../components/InGameMenu/InGameMenu";
+import MatchInfo from "../../components/MatchInfo/MatchInfo";
 import ResultOverlay from "../../components/ResultOverlay/ResultOverlay";
 import TurnIndicator from "../../components/TurnIndicator/TurnIndicator";
-import { getLegalMoves, opponent } from "../../logic/rules";
+import { getLegalMoves, moveNumber, opponent } from "../../logic/rules";
 import type {
   Board as BoardState,
   GameConfig,
@@ -179,11 +180,13 @@ function GameScreen(props: GameScreenProps) {
       >
         <Menu size={20} />
       </button>
+      <MatchInfo config={props.config} score={store.score()} />
       <TurnIndicator
         turn={store.state.turn}
         score={store.score()}
         thinking={store.state.thinking}
         passMessage={store.state.passMessage}
+        moveNumber={moveNumber(store.state.board)}
       />
       <Board
         board={store.state.board}

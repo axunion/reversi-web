@@ -103,6 +103,12 @@ export function countDiscs(board: Board): { black: number; white: number } {
   return { black, white };
 }
 
+export function moveNumber(board: Board): number {
+  // -4 removes the starting discs to get plies played so far; +1 turns that
+  // into a 1-indexed ordinal for the upcoming move (never "Move 0").
+  return board.filter((cell) => cell !== 0).length - 4 + 1;
+}
+
 export type Progress =
   | { kind: "play"; turn: Player }
   | { kind: "pass"; turn: Player }

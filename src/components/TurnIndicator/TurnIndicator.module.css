@@ -3,8 +3,7 @@
   align-items: center;
   justify-content: center;
   gap: 16px;
-  width: min(92vmin, 560px);
-  margin: 0 auto 12px;
+  width: var(--content-width);
   color: var(--text);
   font-variant-numeric: tabular-nums;
 }

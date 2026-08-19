@@ -8,6 +8,7 @@ type TurnIndicatorProps = {
   score: { black: number; white: number };
   thinking: boolean;
   passMessage: Player | null;
+  moveNumber: number;
 };
 
 function TurnIndicator(props: TurnIndicatorProps) {
@@ -23,10 +24,17 @@ function TurnIndicator(props: TurnIndicatorProps) {
         <span>{props.score.black}</span>
       </div>
       <div class={styles.status}>
-        <Show when={props.thinking}>
-          <span class={styles.thinking}>Thinking…</span>
-        </Show>
-        <Show when={props.passMessage !== null}>
+        <Show
+          when={props.passMessage !== null}
+          fallback={
+            <Show
+              when={props.thinking}
+              fallback={<span>Move {props.moveNumber}</span>}
+            >
+              <span class={styles.thinking}>Thinking…</span>
+            </Show>
+          }
+        >
           <span class={styles.pass}>Pass</span>
         </Show>
       </div>

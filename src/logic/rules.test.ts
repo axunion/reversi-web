@@ -5,6 +5,7 @@ import {
   getFlips,
   getLegalMoves,
   initialBoard,
+  moveNumber,
   opponent,
   progressAfter,
 } from "./rules";
@@ -38,6 +39,20 @@ describe("initialBoard / countDiscs", () => {
     expect(board[36]).toBe(2);
     expect(board.filter((cell) => cell !== 0)).toHaveLength(4);
     expect(countDiscs(board)).toEqual({ black: 2, white: 2 });
+  });
+});
+
+describe("moveNumber", () => {
+  it("is 1 at kickoff", () => {
+    expect(moveNumber(initialBoard())).toBe(1);
+  });
+
+  it("increments by 1 after each move", () => {
+    const { board: afterFirst } = applyMove(initialBoard(), 1, 19);
+    expect(moveNumber(afterFirst)).toBe(2);
+
+    const { board: afterSecond } = applyMove(afterFirst, 2, 18);
+    expect(moveNumber(afterSecond)).toBe(3);
   });
 });
 
