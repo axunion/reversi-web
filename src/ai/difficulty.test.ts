@@ -6,11 +6,19 @@ describe("edaxLevel", () => {
     expect(edaxLevel("easy")).toBe(1);
   });
 
-  it("maps normal to level 5", () => {
-    expect(edaxLevel("normal")).toBe(5);
+  it("maps casual to level 2", () => {
+    expect(edaxLevel("casual")).toBe(2);
   });
 
-  it("maps hard to level 11", () => {
-    expect(edaxLevel("hard")).toBe(11);
+  it("maps normal to level 4", () => {
+    expect(edaxLevel("normal")).toBe(4);
+  });
+
+  it("maps hard to level 7", () => {
+    expect(edaxLevel("hard")).toBe(7);
+  });
+
+  it("maps expert to level 11", () => {
+    expect(edaxLevel("expert")).toBe(11);
   });
 });

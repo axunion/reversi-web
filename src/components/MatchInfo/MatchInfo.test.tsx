@@ -16,8 +16,10 @@ describe("MatchInfo", () => {
 
   it.each([
     ["easy", "vs Computer · Easy"],
+    ["casual", "vs Computer · Casual"],
     ["normal", "vs Computer · Normal"],
     ["hard", "vs Computer · Hard"],
+    ["expert", "vs Computer · Expert"],
   ] as const)(
     "shows the difficulty badge for an ai match (%s)",
     (difficulty, expected) => {

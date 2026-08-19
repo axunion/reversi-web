@@ -8,8 +8,10 @@ type MatchInfoProps = {
 
 const DIFFICULTY_LABELS: Record<Difficulty, string> = {
   easy: "Easy",
+  casual: "Casual",
   normal: "Normal",
   hard: "Hard",
+  expert: "Expert",
 };
 
 function modeLabel(config: GameConfig): string {

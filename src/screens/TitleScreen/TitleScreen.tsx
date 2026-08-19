@@ -10,7 +10,13 @@ type TitleScreenProps = {
 
 type Mode = "pvp" | "ai";
 
-const DIFFICULTIES: readonly Difficulty[] = ["easy", "normal", "hard"];
+const DIFFICULTIES: readonly Difficulty[] = [
+  "easy",
+  "casual",
+  "normal",
+  "hard",
+  "expert",
+];
 
 function capitalize(word: string): string {
   return word[0].toUpperCase() + word.slice(1);

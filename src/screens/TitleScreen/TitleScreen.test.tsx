@@ -123,4 +123,16 @@ describe("TitleScreen", () => {
 
     expect(screen.queryByText("Back")).toBeNull();
   });
+
+  it("offers every difficulty rung, in ladder order", () => {
+    render(() => <TitleScreen onStart={() => {}} aiAvailable={true} />);
+
+    const values = [
+      ...document.querySelectorAll<HTMLInputElement>(
+        'input[name="difficulty"]',
+      ),
+    ].map((input) => input.value);
+
+    expect(values).toEqual(["easy", "casual", "normal", "hard", "expert"]);
+  });
 });
