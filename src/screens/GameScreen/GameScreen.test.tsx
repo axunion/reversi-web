@@ -66,7 +66,7 @@ describe("GameScreen", () => {
     expect(screen.getByText("Menu")).not.toBeNull();
     expect(dialog.hasAttribute("data-closed")).toBe(false);
 
-    fireEvent.click(screen.getByText("Resume"));
+    fireEvent.click(screen.getByRole("button", { name: "Close" }));
     // Kobalte keeps the dialog mounted through its exit animation, which
     // never fires an animationend event in this test environment, so it
     // can't be observed leaving the DOM here (InGameMenu.test.tsx doesn't
@@ -94,6 +94,8 @@ describe("GameScreen", () => {
     fireEvent.click(screen.getByLabelText("Menu"));
     const dialog = screen.getByRole("dialog");
     fireEvent.click(screen.getByText("Restart"));
+    vi.advanceTimersByTime(150); // let the confirm view finish swapping in
+    fireEvent.click(screen.getByText("Restart"));
 
     expect(dialog.hasAttribute("data-closed")).toBe(true);
     expect(buttons()[19].querySelector('[class*="disc"]')).toBeNull();
@@ -102,11 +104,15 @@ describe("GameScreen", () => {
     ); // back to black's turn
   });
 
-  it("calls onQuit when Quit to Title is clicked in the menu", () => {
+  it("calls onQuit when Quit to Title is clicked in the menu", async () => {
     const onQuit = vi.fn();
     render(() => <GameScreen config={{ mode: "pvp" }} onQuit={onQuit} />);
 
     fireEvent.click(screen.getByLabelText("Menu"));
+    fireEvent.click(screen.getByText("Quit to Title"));
+    // The confirm view's button has the same label as the main menu's, so
+    // wait on its unique title before clicking it again.
+    await screen.findByText("Quit to title?");
     fireEvent.click(screen.getByText("Quit to Title"));
 
     expect(onQuit).toHaveBeenCalledOnce();
@@ -409,7 +415,7 @@ describe("GameScreen AI orchestration", () => {
     expect(buttons()[19].querySelector('[class*="disc"]')).toBeNull();
     expect(screen.queryByText("Thinking…")).toBeNull();
 
-    fireEvent.click(screen.getByText("Resume"));
+    fireEvent.click(screen.getByRole("button", { name: "Close" }));
 
     expect(buttons()[19].querySelector('[class*="disc"]')).not.toBeNull();
   });
@@ -435,6 +441,8 @@ describe("GameScreen AI orchestration", () => {
     // re-run and no new search would ever be requested (a real soft-lock
     // found during verification of this task).
     fireEvent.click(screen.getByLabelText("Menu"));
+    fireEvent.click(screen.getByText("Restart"));
+    vi.advanceTimersByTime(150); // let the confirm view finish swapping in
     fireEvent.click(screen.getByText("Restart"));
 
     // the stale reply, arriving after Restart, must never apply to the reset game
@@ -470,6 +478,10 @@ describe("GameScreen AI orchestration", () => {
     const staleRequestId = workers[0].lastSearchRequestId();
 
     fireEvent.click(screen.getByLabelText("Menu"));
+    fireEvent.click(screen.getByText("Quit to Title"));
+    // The confirm view's button has the same label as the main menu's, so
+    // wait on its unique title before clicking it again.
+    await screen.findByText("Quit to title?");
     fireEvent.click(screen.getByText("Quit to Title"));
 
     expect(onQuit).toHaveBeenCalledOnce();

@@ -18,12 +18,17 @@ describe("App", () => {
     expect(screen.getByLabelText("Menu")).not.toBeNull();
   });
 
-  it("returns to the title screen via Quit to Title in the in-game menu", () => {
+  it("returns to the title screen via Quit to Title in the in-game menu", async () => {
     render(() => <App />);
 
     fireEvent.click(screen.getByText("vs Player"));
     fireEvent.click(screen.getByText("Start Game"));
     fireEvent.click(screen.getByLabelText("Menu"));
+    fireEvent.click(screen.getByText("Quit to Title"));
+    // The confirm view's button has the same label as the main menu's, so
+    // wait on its unique title instead of the label to be sure the click
+    // below actually lands on the swapped-in confirm view.
+    await screen.findByText("Quit to title?");
     fireEvent.click(screen.getByText("Quit to Title"));
 
     expect(screen.getByText("vs Player")).not.toBeNull();

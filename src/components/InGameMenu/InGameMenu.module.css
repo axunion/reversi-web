@@ -22,10 +22,39 @@
   gap: 12px;
   width: min(90vw, 320px);
   padding: 24px;
+  overflow: hidden;
   background: var(--frame);
   border-radius: var(--radius);
   box-shadow: 0 20px 40px rgb(0 0 0 / 0.5);
   transform: translate(-50%, -50%);
+}
+
+.close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  width: 32px;
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.close:hover,
+.close:focus-visible {
+  background: rgb(227 178 60 / 0.15);
+  color: var(--accent);
+}
+
+.close:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .content[data-expanded] {
@@ -67,6 +96,54 @@
   color: var(--accent);
   text-align: center;
   letter-spacing: 0.05em;
+}
+
+.confirmText {
+  margin: 0 0 4px;
+  color: var(--text);
+  font-size: 0.9rem;
+  text-align: center;
+  opacity: 0.8;
+}
+
+.viewport {
+  display: contents;
+}
+
+.view {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  outline: none;
+  animation: view-enter 220ms var(--ease-pop);
+}
+
+/* Duration must match InGameMenu.tsx's LEAVE_DURATION_MS — the view swap is
+   deferred until this shrink-and-fade has actually finished playing. */
+.view[data-phase="leaving"] {
+  animation: view-leave 150ms ease-in forwards;
+  pointer-events: none;
+}
+
+@keyframes view-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+}
+
+@keyframes view-leave {
+  to {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .view,
+  .view[data-phase="leaving"] {
+    animation: none;
+  }
 }
 
 .button {
