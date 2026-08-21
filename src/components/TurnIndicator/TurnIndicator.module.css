@@ -24,14 +24,7 @@
   opacity: 1;
   box-shadow:
     0 0 0 1px var(--accent),
-    0 0 12px rgb(227 178 60 / 0.5);
-}
-
-.glyph {
-  position: relative;
-  width: 22px;
-  height: 22px;
-  flex-shrink: 0;
+    0 0 12px rgb(var(--accent-rgb) / 0.5);
 }
 
 .status {

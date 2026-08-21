@@ -15,7 +15,7 @@ describe("createGameStore", () => {
 
     let store!: ReturnType<typeof createGameStore>;
     const dispose = createRoot((d) => {
-      store = createGameStore({ mode: "pvp" });
+      store = createGameStore();
       return d;
     });
 
@@ -39,7 +39,7 @@ describe("createGameStore", () => {
 
     let store!: ReturnType<typeof createGameStore>;
     const dispose = createRoot((d) => {
-      store = createGameStore({ mode: "pvp" });
+      store = createGameStore();
       return d;
     });
 
@@ -60,7 +60,7 @@ describe("createGameStore", () => {
     dispose();
   });
 
-  it("reaches status 'ended' right after the last legal move, with no further input", async () => {
+  it("sets winner right after the last legal move, with no further input", async () => {
     vi.resetModules();
     vi.doMock("../../logic/rules", async (importOriginal) => {
       const actual = await importOriginal<typeof import("../../logic/rules")>();
@@ -81,14 +81,13 @@ describe("createGameStore", () => {
 
     let store!: ReturnType<typeof createGameStoreWithGameOver>;
     const dispose = createRoot((d) => {
-      store = createGameStoreWithGameOver({ mode: "pvp" });
+      store = createGameStoreWithGameOver();
       return d;
     });
 
     store.play(19); // the last legal move; progressAfter reports gameOver
     vi.runAllTimers();
 
-    expect(store.state.status).toBe("ended");
     expect(store.state.winner).toBe(1);
 
     dispose();
@@ -99,7 +98,7 @@ describe("createGameStore", () => {
 
     let store!: ReturnType<typeof createGameStore>;
     const dispose = createRoot((d) => {
-      store = createGameStore({ mode: "pvp" });
+      store = createGameStore();
       return d;
     });
 
@@ -111,7 +110,7 @@ describe("createGameStore", () => {
 
     expect(store.state.board).toEqual(initialBoard());
     expect(store.state.turn).toBe(1);
-    expect(store.state.status).toBe("playing");
+    expect(store.state.winner).toBeNull();
     expect(store.state.lastMove).toBeNull();
 
     dispose();
@@ -120,11 +119,11 @@ describe("createGameStore", () => {
   it("reset bumps generation even when nothing else in the state changes", () => {
     let store!: ReturnType<typeof createGameStore>;
     const dispose = createRoot((d) => {
-      store = createGameStore({ mode: "pvp" });
+      store = createGameStore();
       return d;
     });
 
-    // reset() called with no moves played: board/turn/status/etc. all
+    // reset() called with no moves played: board/turn/winner/etc. all
     // already hold their initial values, so generation is the only field
     // guaranteed to change - this is what lets a consumer (GameScreen's AI
     // orchestration effect) detect the reset even then.

@@ -18,6 +18,7 @@
   --bg: #101614; /* page background, near-black green */
   --text: #e8e6e0;
   --accent: #e3b23c; /* gold — highlights, title, buttons */
+  --accent-rgb: 227 178 60; /* --accent as an r g b triplet, for rgb(var(--accent-rgb) / alpha) */
   --overlay: rgb(0 0 0 / 0.55);
   /* motion */
   --flip-duration: 500ms;

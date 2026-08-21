@@ -1,17 +1,10 @@
-import type { Difficulty, GameConfig } from "../../logic/types";
+import { DIFFICULTY_LABELS } from "../../ai/difficulty";
+import type { GameConfig, Score } from "../../logic/types";
 import styles from "./MatchInfo.module.css";
 
 type MatchInfoProps = {
   config: GameConfig;
-  score: { black: number; white: number };
-};
-
-const DIFFICULTY_LABELS: Record<Difficulty, string> = {
-  easy: "Easy",
-  casual: "Casual",
-  normal: "Normal",
-  hard: "Hard",
-  expert: "Expert",
+  score: Score;
 };
 
 function modeLabel(config: GameConfig): string {

@@ -305,10 +305,20 @@ describe("GameScreen AI orchestration", () => {
     expect((buttons()[0] as HTMLButtonElement).disabled).toBe(true);
     // Regression check: without disabling the menu button here too, a player
     // could still open InGameMenu from behind the crash overlay and Restart,
-    // which resets the board but never clears aiCrashed - soft-locking it.
+    // which resets the board but never clears aiFailure - soft-locking it.
     expect((screen.getByLabelText("Menu") as HTMLButtonElement).disabled).toBe(
       true,
     );
+    // Regression check: the AI orchestration effect reads aiFailure() in its
+    // own guard, so setAiFailure("crash") - written from inside this same
+    // effect's catch block - is itself a tracked dependency and retriggers
+    // it. Without guarding on aiFailure() !== null (not just === "init"),
+    // that retrigger falls through and launches a third search behind the
+    // supposedly blocking crash overlay.
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(
+      workers[0].postMessage.mock.calls.filter(([m]) => m.type === "search"),
+    ).toHaveLength(2);
   });
 
   it("closes an already-open menu when the AI crashes, so Restart can't reach a permanently disabled board", async () => {
@@ -364,7 +374,7 @@ describe("GameScreen AI orchestration", () => {
     const menuButton = screen.getByLabelText("Menu") as HTMLButtonElement;
     expect(menuButton.disabled).toBe(false);
 
-    // Same race as the aiCrashed regression above: open the menu first, so a
+    // Same race as the aiFailure regression above: open the menu first, so a
     // failure that arrives while it's already open has to force it closed
     // rather than merely disabling the trigger button. (getByLabelText("Menu")
     // can't be reused once the dialog is open - its title is also "Menu",

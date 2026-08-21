@@ -9,7 +9,7 @@ import {
   progressAfter,
   SIZE,
 } from "../../logic/rules";
-import type { Board, GameConfig, Player } from "../../logic/types";
+import type { Board, Player } from "../../logic/types";
 
 // Mirrors the --flip-duration / --flip-stagger CSS custom properties (src/index.css)
 // so the timing numbers exist in exactly one place.
@@ -21,7 +21,6 @@ const PASS_MESSAGE_MS = 1000;
 type GameState = {
   board: Board;
   turn: Player;
-  status: "playing" | "ended";
   winner: Player | "draw" | null;
   lastMove: number | null;
   flipDelays: Record<number, number>;
@@ -31,7 +30,7 @@ type GameState = {
   // Bumped on every reset(). Lets a consumer detect "the game was reset" even
   // in the one case where every other field happens to end up unchanged: a
   // Restart during the AI's very first search of a game (turn/animating/
-  // status all already hold their initial values, so nothing else here would
+  // winner all already hold their initial values, so nothing else here would
   // otherwise flag the reset).
   generation: number;
 };
@@ -48,7 +47,6 @@ function initialState(generation: number): GameState {
   return {
     board: initialBoard(),
     turn: 1,
-    status: "playing",
     winner: null,
     lastMove: null,
     flipDelays: {},
@@ -59,10 +57,7 @@ function initialState(generation: number): GameState {
   };
 }
 
-// config is unused today (the store is identical for PvP and AI games; whose
-// turn triggers the AI is GameScreen's job per spec 04 §5) but is part of the
-// spec's public signature, so it's kept for that future wiring.
-export function createGameStore(_config: GameConfig) {
+export function createGameStore() {
   const [state, setState] = createStore<GameState>(initialState(0));
 
   let animationTimeout: ReturnType<typeof setTimeout> | undefined;
@@ -73,8 +68,13 @@ export function createGameStore(_config: GameConfig) {
     clearTimeout(passTimeout);
   });
 
+  // !animating skips a recompute against the pre-flip board/mover pair that a
+  // move-in-progress leaves stale for its duration; callers must not read the
+  // resulting [] as "no legal moves" (i.e. a pass) during that window.
   const legalMoves = createMemo(() =>
-    state.status === "playing" ? getLegalMoves(state.board, state.turn) : [],
+    state.winner === null && !state.animating
+      ? getLegalMoves(state.board, state.turn)
+      : [],
   );
 
   const score = createMemo(() => countDiscs(state.board));
@@ -98,12 +98,11 @@ export function createGameStore(_config: GameConfig) {
       return;
     }
 
-    setState("status", "ended");
     setState("winner", progress.winner);
   }
 
   function play(index: number) {
-    if (state.status !== "playing" || state.animating) return;
+    if (state.winner !== null || state.animating) return;
     if (!legalMoves().includes(index)) return;
 
     const mover = state.turn;

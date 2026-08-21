@@ -1,4 +1,4 @@
-import type { Board, CellValue, Player } from "./types";
+import type { Board, CellValue, Outcome, Player, Score } from "./types";
 
 export const SIZE = 8;
 
@@ -91,7 +91,7 @@ export function applyMove(
   return { board: next, flips };
 }
 
-export function countDiscs(board: Board): { black: number; white: number } {
+export function countDiscs(board: Board): Score {
   let black = 0;
   let white = 0;
 
@@ -112,7 +112,7 @@ export function moveNumber(board: Board): number {
 export type Progress =
   | { kind: "play"; turn: Player }
   | { kind: "pass"; turn: Player }
-  | { kind: "gameOver"; winner: Player | "draw" };
+  | { kind: "gameOver"; winner: Outcome };
 
 export function progressAfter(board: Board, mover: Player): Progress {
   const next = opponent(mover);

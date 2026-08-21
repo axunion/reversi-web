@@ -1,0 +1,75 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--overlay);
+  backdrop-filter: blur(4px);
+}
+
+.overlay[data-expanded] {
+  animation: fade-in 180ms ease-out;
+}
+
+.overlay[data-closed] {
+  animation: fade-out 180ms ease-in;
+}
+
+.panel {
+  background: var(--frame);
+  border-radius: var(--radius);
+  box-shadow: 0 20px 40px rgb(0 0 0 / 0.5);
+}
+
+.content {
+  composes: panel;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+  width: min(90vw, 320px);
+  padding: 24px;
+  transform: translate(-50%, -50%);
+}
+
+.content[data-expanded] {
+  animation: dialog-pop-in 180ms var(--ease-pop);
+}
+
+.content[data-closed] {
+  animation: dialog-pop-out 180ms ease-in;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes dialog-pop-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.95);
+  }
+}
+
+@keyframes dialog-pop-out {
+  to {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.95);
+  }
+}
+
+.title {
+  margin: 0 0 4px;
+  color: var(--accent);
+  text-align: center;
+  letter-spacing: 0.05em;
+}

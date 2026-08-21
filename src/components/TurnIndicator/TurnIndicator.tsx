@@ -1,11 +1,11 @@
-import { Show } from "solid-js";
-import type { Player } from "../../logic/types";
-import Disc from "../Disc/Disc";
+import { Match, Switch } from "solid-js";
+import type { Player, Score } from "../../logic/types";
+import DiscCount from "../DiscCount/DiscCount";
 import styles from "./TurnIndicator.module.css";
 
 type TurnIndicatorProps = {
   turn: Player;
-  score: { black: number; white: number };
+  score: Score;
   thinking: boolean;
   passMessage: Player | null;
   moveNumber: number;
@@ -18,34 +18,23 @@ function TurnIndicator(props: TurnIndicatorProps) {
         class={styles.side}
         classList={{ [styles.active]: props.turn === 1 }}
       >
-        <div class={styles.glyph}>
-          <Disc player={1} flipDelayMs={0} />
-        </div>
-        <span>{props.score.black}</span>
+        <DiscCount player={1} count={props.score.black} />
       </div>
       <div class={styles.status}>
-        <Show
-          when={props.passMessage !== null}
-          fallback={
-            <Show
-              when={props.thinking}
-              fallback={<span>Move {props.moveNumber}</span>}
-            >
-              <span class={styles.thinking}>Thinking…</span>
-            </Show>
-          }
-        >
-          <span class={styles.pass}>Pass</span>
-        </Show>
+        <Switch fallback={<span>Move {props.moveNumber}</span>}>
+          <Match when={props.passMessage !== null}>
+            <span class={styles.pass}>Pass</span>
+          </Match>
+          <Match when={props.thinking}>
+            <span class={styles.thinking}>Thinking…</span>
+          </Match>
+        </Switch>
       </div>
       <div
         class={styles.side}
         classList={{ [styles.active]: props.turn === 2 }}
       >
-        <div class={styles.glyph}>
-          <Disc player={2} flipDelayMs={0} />
-        </div>
-        <span>{props.score.white}</span>
+        <DiscCount player={2} count={props.score.white} />
       </div>
     </div>
   );

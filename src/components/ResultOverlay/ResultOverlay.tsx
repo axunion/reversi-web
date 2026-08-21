@@ -1,11 +1,11 @@
 import { Dialog } from "@kobalte/core/dialog";
-import type { GameConfig, Player } from "../../logic/types";
-import Disc from "../Disc/Disc";
+import type { GameConfig, Outcome, Score } from "../../logic/types";
+import DiscCount from "../DiscCount/DiscCount";
 import styles from "./ResultOverlay.module.css";
 
 type ResultOverlayProps = {
-  score: { black: number; white: number };
-  winner: Player | "draw";
+  score: Score;
+  winner: Outcome;
   config: GameConfig;
   onRematch: () => void;
   onQuitToTitle: () => void;
@@ -35,16 +35,10 @@ function ResultOverlay(props: ResultOverlayProps) {
           <Dialog.Title class={styles.title}>{headline(props)}</Dialog.Title>
           <div class={styles.score}>
             <div class={styles.side}>
-              <div class={styles.glyph}>
-                <Disc player={1} flipDelayMs={0} />
-              </div>
-              <span>{props.score.black}</span>
+              <DiscCount player={1} count={props.score.black} />
             </div>
             <div class={styles.side}>
-              <div class={styles.glyph}>
-                <Disc player={2} flipDelayMs={0} />
-              </div>
-              <span>{props.score.white}</span>
+              <DiscCount player={2} count={props.score.white} />
             </div>
           </div>
           <button type="button" class={styles.button} onClick={props.onRematch}>

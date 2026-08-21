@@ -5,3 +5,5 @@ export type Difficulty = "easy" | "casual" | "normal" | "hard" | "expert";
 export type GameConfig =
   | { mode: "pvp" }
   | { mode: "ai"; difficulty: Difficulty; playerColor: Player };
+export type Score = { black: number; white: number };
+export type Outcome = Player | "draw";

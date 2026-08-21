@@ -91,8 +91,9 @@ export function createAiClient() {
     await init();
     const w = ensureWorker();
 
+    let timeoutId: ReturnType<typeof setTimeout>;
     const timeout = new Promise<number>((_resolve, reject) => {
-      setTimeout(() => {
+      timeoutId = setTimeout(() => {
         if (pending?.id === id) {
           pending = null;
           reject(new Error("AI search timed out"));
@@ -115,7 +116,7 @@ export function createAiClient() {
     return Promise.race([
       Promise.all([result, delay]).then(([move]) => move),
       timeout,
-    ]);
+    ]).finally(() => clearTimeout(timeoutId));
   }
 
   function cancel(): void {

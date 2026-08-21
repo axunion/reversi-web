@@ -29,11 +29,10 @@ type GameScreenProps = {
 };
 
 function GameScreen(props: GameScreenProps) {
-  const store = createGameStore(props.config);
+  const store = createGameStore();
   const [menuOpen, setMenuOpen] = createSignal(false);
   const [pendingAiMove, setPendingAiMove] = createSignal<number | null>(null);
-  const [aiInitFailed, setAiInitFailed] = createSignal(false);
-  const [aiCrashed, setAiCrashed] = createSignal(false);
+  const [aiFailure, setAiFailure] = createSignal<"init" | "crash" | null>(null);
 
   // Narrowing props.config once, rather than re-checking props.config.mode at
   // every use site, gives every AI-only branch below typed access to
@@ -44,18 +43,17 @@ function GameScreen(props: GameScreenProps) {
   const disabled = createMemo(
     () =>
       store.state.animating ||
-      store.state.status !== "playing" ||
+      store.state.winner !== null ||
       store.state.thinking ||
-      aiInitFailed() ||
-      aiCrashed(),
+      aiFailure() !== null,
   );
 
   if (aiClient) {
     aiClient.init().catch(() => {
-      setAiInitFailed(true);
+      setAiFailure("init");
       // Force the in-game menu closed: it's still fully interactive (Kobalte's
       // Dialog doesn't know about this failure), and its Restart button resets
-      // the game without clearing aiInitFailed, which would otherwise soft-lock
+      // the game without clearing aiFailure, which would otherwise soft-lock
       // the board forever (Board's `disabled` memo stays true regardless).
       setMenuOpen(false);
     });
@@ -95,14 +93,14 @@ function GameScreen(props: GameScreenProps) {
   createEffect(() => {
     const turn = store.state.turn;
     const animating = store.state.animating;
-    const status = store.state.status;
+    const winner = store.state.winner;
     // Tracked so a reset() during the AI's very first search still
     // retriggers this effect, even in the one case where turn/animating/
-    // status all happen to already hold their post-reset values (createGameStore.ts).
+    // winner all happen to already hold their post-reset values (createGameStore.ts).
     void store.state.generation;
 
-    if (!aiClient || !aiConfig || aiInitFailed()) return;
-    if (status !== "playing" || animating) return;
+    if (!aiClient || !aiConfig || aiFailure() !== null) return;
+    if (winner !== null || animating) return;
     if (turn !== opponent(aiConfig.playerColor)) return;
 
     // Read untracked: this snapshot is only for the search call, not something
@@ -140,10 +138,10 @@ function GameScreen(props: GameScreenProps) {
       } catch {
         if (!cancelled) {
           store.setThinking(false);
-          setAiCrashed(true);
+          setAiFailure("crash");
           // Same reasoning as the init-failure branch above: force the menu
           // closed so Restart can't reach a state where the board is
-          // permanently disabled without aiCrashed ever being cleared.
+          // permanently disabled without aiFailure ever being cleared.
           setMenuOpen(false);
         }
       }
@@ -175,7 +173,7 @@ function GameScreen(props: GameScreenProps) {
         type="button"
         class={styles.menuButton}
         aria-label="Menu"
-        disabled={aiInitFailed() || aiCrashed()}
+        disabled={aiFailure() !== null}
         onClick={() => setMenuOpen(true)}
       >
         <Menu size={20} />
@@ -203,19 +201,18 @@ function GameScreen(props: GameScreenProps) {
         onRestart={restart}
         onQuitToTitle={quitToTitle}
       />
-      <Show when={store.state.status === "ended"}>
-        {/* finishMove (createGameStore.ts) sets status then winner synchronously in the
-            same call, with no yield between them, so winner is always populated by the
-            time this Show's condition is observed to be true */}
-        <ResultOverlay
-          score={store.score()}
-          winner={store.state.winner as NonNullable<typeof store.state.winner>}
-          config={props.config}
-          onRematch={store.reset}
-          onQuitToTitle={quitToTitle}
-        />
+      <Show when={store.state.winner}>
+        {(winner) => (
+          <ResultOverlay
+            score={store.score()}
+            winner={winner()}
+            config={props.config}
+            onRematch={store.reset}
+            onQuitToTitle={quitToTitle}
+          />
+        )}
       </Show>
-      <Show when={aiInitFailed()}>
+      <Show when={aiFailure() === "init"}>
         <div class={styles.errorBanner}>
           <p>The computer opponent could not start.</p>
           <button type="button" class={styles.button} onClick={quitToTitle}>
@@ -223,7 +220,7 @@ function GameScreen(props: GameScreenProps) {
           </button>
         </div>
       </Show>
-      <Show when={aiCrashed()}>
+      <Show when={aiFailure() === "crash"}>
         <div class={styles.crashOverlay}>
           <div class={styles.crashPanel}>
             <p>The computer opponent crashed.</p>

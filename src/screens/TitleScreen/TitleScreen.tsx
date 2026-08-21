@@ -1,5 +1,6 @@
 import { RadioGroup } from "@kobalte/core/radio-group";
 import { createEffect, createSignal, For, Show } from "solid-js";
+import { DIFFICULTIES, DIFFICULTY_LABELS } from "../../ai/difficulty";
 import type { Difficulty, GameConfig, Player } from "../../logic/types";
 import styles from "./TitleScreen.module.css";
 
@@ -9,18 +10,6 @@ type TitleScreenProps = {
 };
 
 type Mode = "pvp" | "ai";
-
-const DIFFICULTIES: readonly Difficulty[] = [
-  "easy",
-  "casual",
-  "normal",
-  "hard",
-  "expert",
-];
-
-function capitalize(word: string): string {
-  return word[0].toUpperCase() + word.slice(1);
-}
 
 function TitleScreen(props: TitleScreenProps) {
   const [mode, setMode] = createSignal<Mode>("pvp");
@@ -115,7 +104,7 @@ function TitleScreen(props: TitleScreenProps) {
                     <RadioGroup.ItemInput />
                     <RadioGroup.ItemControl class={styles.listItemControl}>
                       <RadioGroup.ItemLabel class={styles.listItemLabel}>
-                        {capitalize(level)}
+                        {DIFFICULTY_LABELS[level]}
                       </RadioGroup.ItemLabel>
                     </RadioGroup.ItemControl>
                   </RadioGroup.Item>

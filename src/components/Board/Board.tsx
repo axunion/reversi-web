@@ -1,4 +1,5 @@
-import { For, Index, Show } from "solid-js";
+import { createMemo, For, Index, Show } from "solid-js";
+import { SIZE } from "../../logic/rules";
 import type { Board as BoardState, Player } from "../../logic/types";
 import Disc from "../Disc/Disc";
 import styles from "./Board.module.css";
@@ -29,16 +30,17 @@ function Board(props: BoardProps) {
             <div
               class={styles.star}
               style={{
-                top: `calc(${row} / 8 * 100%)`,
-                left: `calc(${col} / 8 * 100%)`,
+                top: `calc(${row} / ${SIZE} * 100%)`,
+                left: `calc(${col} / ${SIZE} * 100%)`,
               }}
             />
           )}
         </For>
         <Index each={props.board}>
           {(cell, index) => {
-            const isHinted = () =>
-              !props.disabled && props.legalMoves.includes(index);
+            const isHinted = createMemo(
+              () => !props.disabled && props.legalMoves.includes(index),
+            );
 
             return (
               <button

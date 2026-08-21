@@ -120,12 +120,16 @@ self.onmessage = async ({ data }: MessageEvent<MainToWorker>) => {
     switch (data.type) {
       case "init": {
         const [factory, evalBuffer] = await Promise.all([
-          loadEdaxFactory(),
+          // Instantiate once (without running main) to surface a wasm compile
+          // error at init time rather than on the first search (spec 04 §6);
+          // chained onto the factory load itself so wasm fetch+compile
+          // overlaps the eval.dat download instead of following it.
+          loadEdaxFactory().then(async (factory) => {
+            await factory({ noInitialRun: true, locateFile });
+            return factory;
+          }),
           fetch("/edax/eval.dat").then((res) => res.arrayBuffer()),
         ]);
-        // Instantiate once (without running main) to surface a wasm compile
-        // error at init time rather than on the first search (spec 04 §6).
-        await factory({ noInitialRun: true, locateFile });
         edaxFactory = factory;
         evalData = evalBuffer;
         post({ type: "ready" });

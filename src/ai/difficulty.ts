@@ -17,3 +17,15 @@ const EDAX_LEVELS: Record<Difficulty, number> = {
 export function edaxLevel(d: Difficulty): number {
   return EDAX_LEVELS[d];
 }
+
+export const DIFFICULTIES: readonly Difficulty[] = Object.keys(
+  EDAX_LEVELS,
+) as Difficulty[];
+
+export const DIFFICULTY_LABELS: Record<Difficulty, string> = {
+  easy: "Easy",
+  casual: "Casual",
+  normal: "Normal",
+  hard: "Hard",
+  expert: "Expert",
+};
