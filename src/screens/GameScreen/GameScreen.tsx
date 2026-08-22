@@ -138,7 +138,14 @@ function GameScreen(props: GameScreenProps) {
       } catch {
         if (!cancelled) {
           store.setThinking(false);
-          setAiFailure("crash");
+          // aiFailure() can already be "init" here: init() is a single
+          // shared promise, so its rejection can reach both the top-level
+          // .catch() above and this effect's own getBestMove(...) await in
+          // the same microtask flush. Don't let the generic "crashed"
+          // message overwrite the more accurate "could not start" one.
+          if (aiFailure() === null) {
+            setAiFailure("crash");
+          }
           // Same reasoning as the init-failure branch above: force the menu
           // closed so Restart can't reach a state where the board is
           // permanently disabled without aiFailure ever being cleared.

@@ -9,7 +9,7 @@ import {
   progressAfter,
   SIZE,
 } from "../../logic/rules";
-import type { Board, Player } from "../../logic/types";
+import type { Board, Outcome, Player } from "../../logic/types";
 
 // Mirrors the --flip-duration / --flip-stagger CSS custom properties (src/index.css)
 // so the timing numbers exist in exactly one place.
@@ -21,7 +21,7 @@ const PASS_MESSAGE_MS = 1000;
 type GameState = {
   board: Board;
   turn: Player;
-  winner: Player | "draw" | null;
+  winner: Outcome | null;
   lastMove: number | null;
   flipDelays: Record<number, number>;
   passMessage: Player | null;

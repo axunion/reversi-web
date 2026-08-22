@@ -88,8 +88,8 @@ function InGameMenu(props: InGameMenuProps) {
   // view was showing simply rides along with the dialog's own close
   // animation instead of instantly swapping back to "Menu" mid-close.
   createEffect(() => {
+    clearTimeout(pendingSwap);
     if (props.open) {
-      clearTimeout(pendingSwap);
       setLeaving(false);
       setConfirming(null);
     }

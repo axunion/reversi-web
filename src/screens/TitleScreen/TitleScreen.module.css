@@ -154,6 +154,10 @@
   opacity: 0.45;
 }
 
-.aiPanel .itemControl[data-disabled] {
+/* The panel's own [data-disabled] opacity already dims everything inside it;
+   without this, each control's own [data-disabled] opacity would compound
+   on top and make it visibly darker than the rest of the dimmed panel. */
+.aiPanel .itemControl[data-disabled],
+.aiPanel .listItemControl[data-disabled] {
   opacity: 1;
 }
