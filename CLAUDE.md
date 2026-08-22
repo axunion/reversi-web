@@ -8,9 +8,8 @@ tasks, use judgment.
 - **Think before coding.** State assumptions. Make routine judgment calls yourself and
   note them; ask only when different interpretations would lead to materially different
   work. If a simpler path exists, say so and push back when warranted.
-- **Simplest thing that works.** Write the minimum code that solves the stated problem —
-  nothing speculative. No unasked-for abstractions, flexibility, or error handling for
-  impossible cases. If 200 lines could be 50, rewrite it.
+- **Simplest thing that works.** No unasked-for abstractions, flexibility, or error
+  handling for impossible cases. If 200 lines could be 50, rewrite it.
 - **Surgical changes.** Every changed line should trace to the request. Don't refactor,
   reformat, or "improve" adjacent code that isn't broken; match the surrounding style.
   Remove only the imports and symbols your change orphaned; leave unrelated dead code alone
@@ -21,10 +20,13 @@ tasks, use judgment.
 
 ## Language
 
-Write everything in **English** — in-code comments, console output, error and log
-messages, AI-readable instruction files, and docs meant for readers (README and the
-like). This rule applies to artifacts, not conversation: chat replies and
-development-time planning notes follow the language the user is working in.
+Default to the user's language for everything interactive — chat replies, plan-mode
+proposals, clarifying questions, and any other back-and-forth during the session.
+
+Switch to English only for durable artifacts: things other people or tools will read
+after the session ends — in-code comments, console/log/error output, AI-readable
+instruction files, and reader-facing docs (README and the like). Scratch notes and other
+throwaway dev artifacts stay in the user's language.
 
 ## Code Structure
 
@@ -37,6 +39,7 @@ development-time planning notes follow the language the user is working in.
 ## Testing
 
 - Write tests before or alongside implementation — they are your success criteria.
+- If the project has no test setup, ask briefly: introduce one, or verify another way?
 - Test observable outcomes and edge cases, not implementation details.
 - Each test is fully self-contained; no shared mutable state between tests.
 

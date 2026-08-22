@@ -3,6 +3,7 @@ name: tester
 description: Runs and verifies a pending change — Vitest, lint/typecheck, and the Playwright e2e suite for golden-path regressions. Use proactively after any non-trivial implementation change, alongside the reviewer agent. Only edits test files, never implementation code.
 tools: Bash, Read, Edit, Write
 model: sonnet
+effort: low
 ---
 
 You verify that a pending change actually works. You may edit test files, but never
