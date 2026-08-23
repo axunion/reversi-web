@@ -94,16 +94,20 @@ function TitleScreen(props: TitleScreenProps) {
             name="difficulty"
             disabled={mode() !== "ai"}
           >
-            <RadioGroup.Label class={styles.srOnly}>
+            <RadioGroup.Label class={styles.difficultyLabel}>
               Difficulty
             </RadioGroup.Label>
-            <div class={styles.list}>
+            <p class={styles.difficultyCaption}>
+              {DIFFICULTY_LABELS[difficulty()]}
+            </p>
+            <div class={styles.segmented}>
               <For each={DIFFICULTIES}>
-                {(level) => (
-                  <RadioGroup.Item value={level} class={styles.listItem}>
+                {(level, index) => (
+                  <RadioGroup.Item value={level} class={styles.item}>
                     <RadioGroup.ItemInput />
-                    <RadioGroup.ItemControl class={styles.listItemControl}>
-                      <RadioGroup.ItemLabel class={styles.listItemLabel}>
+                    <RadioGroup.ItemControl class={styles.itemControl}>
+                      <span aria-hidden="true">{index() + 1}</span>
+                      <RadioGroup.ItemLabel class={styles.srOnly}>
                         {DIFFICULTY_LABELS[level]}
                       </RadioGroup.ItemLabel>
                     </RadioGroup.ItemControl>
