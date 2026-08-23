@@ -1,5 +1,5 @@
 import { RadioGroup } from "@kobalte/core/radio-group";
-import { createEffect, createSignal, For, Show } from "solid-js";
+import { createSignal, For } from "solid-js";
 import { DIFFICULTIES, DIFFICULTY_LABELS } from "../../ai/difficulty";
 import type { Difficulty, GameConfig, Player } from "../../logic/types";
 import styles from "./TitleScreen.module.css";
@@ -7,40 +7,36 @@ import styles from "./TitleScreen.module.css";
 type TitleScreenProps = {
   onStart: (config: GameConfig) => void;
   aiAvailable: boolean;
+  aiProbed: boolean;
 };
 
 type Mode = "pvp" | "ai";
 
 function TitleScreen(props: TitleScreenProps) {
-  const [mode, setMode] = createSignal<Mode>("pvp");
-  const [modeTouched, setModeTouched] = createSignal(false);
+  // AI opponent is the intended default. aiAvailable starts false and only
+  // resolves asynchronously (see App.tsx's probe), but defaulting mode to
+  // "ai" up front - rather than starting at "pvp" and switching over once
+  // the probe resolves - avoids a visible flip of the selected option on
+  // most loads. The "vs AI" chip stays disabled until aiAvailable catches
+  // up, and handleStart falls back to pvp if it's clicked before that.
+  const [mode, setMode] = createSignal<Mode>("ai");
   const [difficulty, setDifficulty] = createSignal<Difficulty>("normal");
   const [playerColor, setPlayerColor] = createSignal<Player>(1);
 
-  // AI opponent is the intended default, but aiAvailable starts false and
-  // only resolves asynchronously (see App.tsx's probe) - switch to it once
-  // ready, unless the player already made an explicit choice.
-  createEffect(() => {
-    if (props.aiAvailable && !modeTouched()) {
-      setMode("ai");
-    }
-  });
-
   function handleModeChange(value: string) {
     if (value === "ai" && !props.aiAvailable) return;
-    setModeTouched(true);
     setMode(value as Mode);
   }
 
   function handleStart() {
-    if (mode() === "pvp") {
-      props.onStart({ mode: "pvp" });
-    } else {
+    if (mode() === "ai" && props.aiAvailable) {
       props.onStart({
         mode: "ai",
         difficulty: difficulty(),
         playerColor: playerColor(),
       });
+    } else {
+      props.onStart({ mode: "pvp" });
     }
   }
 
@@ -79,9 +75,12 @@ function TitleScreen(props: TitleScreenProps) {
             </RadioGroup.Item>
           </div>
         </RadioGroup>
-        <Show when={!props.aiAvailable}>
-          <p class={styles.note}>Computer opponent unavailable</p>
-        </Show>
+        <p
+          class={styles.note}
+          data-hidden={props.aiProbed && !props.aiAvailable ? undefined : ""}
+        >
+          Computer opponent unavailable
+        </p>
 
         <div
           class={styles.aiPanel}

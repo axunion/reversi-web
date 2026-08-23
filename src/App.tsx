@@ -20,10 +20,15 @@ function initialScreen(): Screen {
 function App() {
   const [screen, setScreen] = createSignal<Screen>(initialScreen());
   const [aiAvailable, setAiAvailable] = createSignal(false);
+  const [aiProbed, setAiProbed] = createSignal(false);
 
   // spec 04 §6: aiAvailable is decided once, at App level, from a probe
   // separate from any game's own aiClient (which GameScreen owns and disposes
   // itself) - disposed as soon as the probe settles, since nothing else needs it.
+  // aiProbed distinguishes "still probing" from "confirmed unavailable" -
+  // both start as aiAvailable=false, but TitleScreen should only warn the
+  // player once the probe has actually settled, not during the brief window
+  // while it's still in flight.
   const probeClient = createAiClient();
   probeClient
     .init()
@@ -31,7 +36,10 @@ function App() {
       () => setAiAvailable(true),
       () => setAiAvailable(false),
     )
-    .finally(() => probeClient.dispose());
+    .finally(() => {
+      setAiProbed(true);
+      probeClient.dispose();
+    });
 
   return (
     <Switch>
@@ -39,6 +47,7 @@ function App() {
         <TitleScreen
           onStart={(config) => setScreen({ name: "game", config })}
           aiAvailable={aiAvailable()}
+          aiProbed={aiProbed()}
         />
       </Match>
       <Match when={screen().name === "game"}>

@@ -47,6 +47,10 @@
   opacity: 0.7;
 }
 
+.note[data-hidden] {
+  visibility: hidden;
+}
+
 .field {
   display: flex;
   flex-direction: column;
@@ -92,6 +96,13 @@
 
 .itemControl[data-disabled] {
   cursor: not-allowed;
+}
+
+/* A disabled item that's also the current selection (the AI probe hasn't
+   resolved yet, but "vs AI" is already the default) isn't something the
+   player needs to be steered away from, so it stays at full color instead
+   of looking momentarily washed out. */
+.itemControl[data-disabled]:not([data-checked]) {
   opacity: 0.4;
 }
 

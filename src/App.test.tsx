@@ -107,7 +107,11 @@ describe("App AI availability probe", () => {
       }) as HTMLInputElement;
 
     expect(versusComputerRadio().disabled).toBe(true);
-    expect(screen.getByText("Computer opponent unavailable")).not.toBeNull();
+    expect(
+      screen
+        .getByText("Computer opponent unavailable")
+        .hasAttribute("data-hidden"),
+    ).toBe(true);
     expect(workers).toHaveLength(1);
 
     workers[0].emit({ type: "ready" });
@@ -115,7 +119,11 @@ describe("App AI availability probe", () => {
     await Promise.resolve(); // let the subsequent .finally(...) settle
 
     expect(versusComputerRadio().disabled).toBe(false);
-    expect(screen.queryByText("Computer opponent unavailable")).toBeNull();
+    expect(
+      screen
+        .getByText("Computer opponent unavailable")
+        .hasAttribute("data-hidden"),
+    ).toBe(true);
     expect(workers[0].terminate).toHaveBeenCalledOnce();
   });
 
@@ -136,7 +144,11 @@ describe("App AI availability probe", () => {
     await Promise.resolve(); // let the subsequent .finally(...) settle
 
     expect(versusComputerRadio().disabled).toBe(true);
-    expect(screen.getByText("Computer opponent unavailable")).not.toBeNull();
+    expect(
+      screen
+        .getByText("Computer opponent unavailable")
+        .hasAttribute("data-hidden"),
+    ).toBe(false);
     expect(workers[0].terminate).toHaveBeenCalledOnce();
   });
 });
