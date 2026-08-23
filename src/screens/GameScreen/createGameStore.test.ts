@@ -116,6 +116,47 @@ describe("createGameStore", () => {
     dispose();
   });
 
+  it("seeds board/turn/lastMove from a restore payload, leaving everything else at its default", () => {
+    const restoreBoard = initialBoard().slice();
+    restoreBoard[19] = 1;
+    restoreBoard[27] = 1;
+
+    let store!: ReturnType<typeof createGameStore>;
+    const dispose = createRoot((d) => {
+      store = createGameStore({ board: restoreBoard, turn: 2, lastMove: 19 });
+      return d;
+    });
+
+    expect(store.state.board).toEqual(restoreBoard);
+    expect(store.state.turn).toBe(2);
+    expect(store.state.lastMove).toBe(19);
+    expect(store.state.winner).toBeNull();
+    expect(store.state.animating).toBe(false);
+    expect(store.state.thinking).toBe(false);
+
+    dispose();
+  });
+
+  it("reset discards a restore payload and returns to the opening position", () => {
+    const restoreBoard = initialBoard().slice();
+    restoreBoard[19] = 1;
+    restoreBoard[27] = 1;
+
+    let store!: ReturnType<typeof createGameStore>;
+    const dispose = createRoot((d) => {
+      store = createGameStore({ board: restoreBoard, turn: 2, lastMove: 19 });
+      return d;
+    });
+
+    store.reset();
+
+    expect(store.state.board).toEqual(initialBoard());
+    expect(store.state.turn).toBe(1);
+    expect(store.state.lastMove).toBeNull();
+
+    dispose();
+  });
+
   it("reset bumps generation even when nothing else in the state changes", () => {
     let store!: ReturnType<typeof createGameStore>;
     const dispose = createRoot((d) => {

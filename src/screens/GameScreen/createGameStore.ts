@@ -1,5 +1,6 @@
 import { batch, createMemo, onCleanup } from "solid-js";
 import { createStore } from "solid-js/store";
+import type { RestoreState } from "../../gamePersistence";
 import {
   applyMove,
   countDiscs,
@@ -43,12 +44,12 @@ function chebyshevDistance(a: number, b: number): number {
   return Math.max(Math.abs(rowA - rowB), Math.abs(colA - colB));
 }
 
-function initialState(generation: number): GameState {
+function initialState(generation: number, restore?: RestoreState): GameState {
   return {
-    board: initialBoard(),
-    turn: 1,
+    board: restore?.board ?? initialBoard(),
+    turn: restore?.turn ?? 1,
     winner: null,
-    lastMove: null,
+    lastMove: restore?.lastMove ?? null,
     flipDelays: {},
     passMessage: null,
     thinking: false,
@@ -57,8 +58,8 @@ function initialState(generation: number): GameState {
   };
 }
 
-export function createGameStore() {
-  const [state, setState] = createStore<GameState>(initialState(0));
+export function createGameStore(restore?: RestoreState) {
+  const [state, setState] = createStore<GameState>(initialState(0, restore));
 
   let animationTimeout: ReturnType<typeof setTimeout> | undefined;
   let passTimeout: ReturnType<typeof setTimeout> | undefined;

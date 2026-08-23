@@ -10,7 +10,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { MainToWorker, WorkerToMain } from "../../ai/protocol";
 import boardStyles from "../../components/Board/Board.module.css";
 import turnIndicatorStyles from "../../components/TurnIndicator/TurnIndicator.module.css";
+import { loadGame } from "../../gamePersistence";
 import GameScreen from "./GameScreen";
+
+beforeEach(() => {
+  localStorage.clear();
+});
 
 afterEach(() => {
   cleanup();
@@ -118,6 +123,71 @@ describe("GameScreen", () => {
     expect(onQuit).toHaveBeenCalledOnce();
   });
 
+  it("saves the game to localStorage once a move's animation settles, but not mid-animation", () => {
+    vi.useFakeTimers();
+
+    const { container } = render(() => (
+      <GameScreen config={{ mode: "pvp" }} onQuit={() => {}} />
+    ));
+    const buttons = () => container.querySelectorAll(`.${boardStyles.cell}`);
+
+    fireEvent.click(buttons()[19]); // d3
+    // mid-animation: still the pre-move save from mount, not the new move yet
+    expect(loadGame()?.lastMove).toBeNull();
+
+    vi.runAllTimers();
+
+    const saved = loadGame();
+    expect(saved).not.toBeNull();
+    expect(saved?.config).toEqual({ mode: "pvp" });
+    expect(saved?.turn).toBe(2);
+    expect(saved?.lastMove).toBe(19);
+  });
+
+  it("renders a restored board/turn/lastMove on mount instead of the opening position", () => {
+    const restoreBoard = new Array(64).fill(0) as number[];
+    restoreBoard[27] = 1; // d4
+    restoreBoard[28] = 1; // e4
+    restoreBoard[35] = 1; // d5
+    restoreBoard[36] = 2; // e5
+    restoreBoard[19] = 1; // d3, the restored last move
+
+    const { container } = render(() => (
+      <GameScreen
+        config={{ mode: "pvp" }}
+        restore={{
+          board: restoreBoard as never,
+          turn: 2,
+          lastMove: 19,
+        }}
+        onQuit={() => {}}
+      />
+    ));
+
+    const buttons = () => container.querySelectorAll(`.${boardStyles.cell}`);
+    const sides = () =>
+      container.querySelectorAll(`.${turnIndicatorStyles.side}`);
+
+    expect(buttons()[19].querySelector('[class*="disc"]')).not.toBeNull();
+    expect(buttons()[19].classList.contains(boardStyles.lastMove)).toBe(true);
+    expect(sides()[1].classList.contains(turnIndicatorStyles.active)).toBe(
+      true,
+    ); // white's turn, as restored
+  });
+
+  it("clears the saved game when Quit to Title is confirmed", async () => {
+    render(() => <GameScreen config={{ mode: "pvp" }} onQuit={() => {}} />);
+
+    expect(loadGame()).not.toBeNull(); // saved on mount, before any move
+
+    fireEvent.click(screen.getByLabelText("Menu"));
+    fireEvent.click(screen.getByText("Quit to Title"));
+    await screen.findByText("Quit to title?");
+    fireEvent.click(screen.getByText("Quit to Title"));
+
+    expect(loadGame()).toBeNull();
+  });
+
   it("shows ResultOverlay with the real score once the store reaches status 'ended', and Rematch resets the game", async () => {
     vi.resetModules();
     vi.doMock("../../logic/rules", async (importOriginal) => {
@@ -151,6 +221,33 @@ describe("GameScreen", () => {
 
     expect(screen.queryByText("Black wins")).toBeNull();
     expect(buttons()[19].querySelector('[class*="disc"]')).toBeNull();
+  });
+
+  it("clears the saved game once it reaches game over", async () => {
+    vi.resetModules();
+    vi.doMock("../../logic/rules", async (importOriginal) => {
+      const actual = await importOriginal<typeof import("../../logic/rules")>();
+      return {
+        ...actual,
+        progressAfter: () => ({
+          kind: "gameOver" as const,
+          winner: 1 as const,
+        }),
+      };
+    });
+
+    const { default: GameScreenWithGameOver } = await import("./GameScreen");
+
+    vi.useFakeTimers();
+    const { container } = render(() => (
+      <GameScreenWithGameOver config={{ mode: "pvp" }} onQuit={() => {}} />
+    ));
+    const buttons = () => container.querySelectorAll(`.${boardStyles.cell}`);
+
+    fireEvent.click(buttons()[19]);
+    vi.runAllTimers();
+
+    expect(loadGame()).toBeNull();
   });
 
   it("calls onQuit when Back to Title is clicked on the result overlay", async () => {

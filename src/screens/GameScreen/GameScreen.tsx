@@ -14,6 +14,8 @@ import InGameMenu from "../../components/InGameMenu/InGameMenu";
 import MatchInfo from "../../components/MatchInfo/MatchInfo";
 import ResultOverlay from "../../components/ResultOverlay/ResultOverlay";
 import TurnIndicator from "../../components/TurnIndicator/TurnIndicator";
+import type { RestoreState } from "../../gamePersistence";
+import { clearSavedGame, saveGame } from "../../gamePersistence";
 import { getLegalMoves, moveNumber, opponent } from "../../logic/rules";
 import type {
   Board as BoardState,
@@ -25,11 +27,12 @@ import styles from "./GameScreen.module.css";
 
 type GameScreenProps = {
   config: GameConfig;
+  restore?: RestoreState;
   onQuit: () => void;
 };
 
 function GameScreen(props: GameScreenProps) {
-  const store = createGameStore();
+  const store = createGameStore(props.restore);
   const [menuOpen, setMenuOpen] = createSignal(false);
   const [pendingAiMove, setPendingAiMove] = createSignal<number | null>(null);
   const [aiFailure, setAiFailure] = createSignal<"init" | "crash" | null>(null);
@@ -162,6 +165,23 @@ function GameScreen(props: GameScreenProps) {
     store.play(move);
   });
 
+  // Persists the in-progress game so a reload can resume it (App.tsx reads
+  // this back on startup). Skips while animating: board/turn aren't settled
+  // together yet mid-flip, so saving here could restore a torn state.
+  createEffect(() => {
+    if (store.state.animating) return;
+    if (store.state.winner !== null) {
+      clearSavedGame();
+      return;
+    }
+    saveGame({
+      config: props.config,
+      board: store.state.board,
+      turn: store.state.turn,
+      lastMove: store.state.lastMove,
+    });
+  });
+
   function restart() {
     aiClient?.cancel();
     setPendingAiMove(null);
@@ -171,6 +191,10 @@ function GameScreen(props: GameScreenProps) {
 
   function quitToTitle() {
     aiClient?.cancel();
+    // Quitting doesn't change any state the save effect above tracks (it
+    // just tells the parent to swap screens, unmounting this component), so
+    // it never gets a chance to clear the save on its own - do it explicitly.
+    clearSavedGame();
     props.onQuit();
   }
 

@@ -2,6 +2,12 @@ import { cleanup, fireEvent, render, screen } from "@solidjs/testing-library";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
 import type { MainToWorker, WorkerToMain } from "./ai/protocol";
+import { saveGame } from "./gamePersistence";
+import { initialBoard } from "./logic/rules";
+
+beforeEach(() => {
+  localStorage.clear();
+});
 
 afterEach(cleanup);
 
@@ -30,6 +36,30 @@ describe("App", () => {
     // below actually lands on the swapped-in confirm view.
     await screen.findByText("Quit to title?");
     fireEvent.click(screen.getByText("Quit to Title"));
+
+    expect(screen.getByText("vs Player")).not.toBeNull();
+  });
+});
+
+describe("App game restore", () => {
+  it("goes straight to the game screen when localStorage holds a saved in-progress game", () => {
+    saveGame({
+      config: { mode: "pvp" },
+      board: initialBoard(),
+      turn: 2,
+      lastMove: 19,
+    });
+
+    render(() => <App />);
+
+    expect(screen.queryByText("vs Player")).toBeNull();
+    expect(screen.getByLabelText("Menu")).not.toBeNull();
+  });
+
+  it("falls back to the title screen when the saved data is corrupted", () => {
+    localStorage.setItem("reversi:save", "{not json");
+
+    render(() => <App />);
 
     expect(screen.getByText("vs Player")).not.toBeNull();
   });
