@@ -37,6 +37,7 @@
 
 .button {
   composes: button from "../../styles/button.module.css";
+  margin-top: 35px;
 }
 
 .note {
@@ -110,12 +111,13 @@
   cursor: pointer;
 }
 
-.difficultyLabel {
+.fieldLabel {
   margin: 0;
   color: var(--text);
   font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.08em;
+  word-spacing: -0.2em;
   text-align: center;
   text-transform: uppercase;
   opacity: 0.6;

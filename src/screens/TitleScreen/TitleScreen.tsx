@@ -93,7 +93,7 @@ function TitleScreen(props: TitleScreenProps) {
             name="difficulty"
             disabled={mode() !== "ai"}
           >
-            <RadioGroup.Label class={styles.difficultyLabel}>
+            <RadioGroup.Label class={styles.fieldLabel}>
               Difficulty
             </RadioGroup.Label>
             <p class={styles.difficultyCaption}>
@@ -123,7 +123,9 @@ function TitleScreen(props: TitleScreenProps) {
             name="player-color"
             disabled={mode() !== "ai"}
           >
-            <RadioGroup.Label class={styles.srOnly}>Play as</RadioGroup.Label>
+            <RadioGroup.Label class={styles.fieldLabel}>
+              Play as
+            </RadioGroup.Label>
             <div class={styles.segmented}>
               <RadioGroup.Item value="black" class={styles.item}>
                 <RadioGroup.ItemInput />
