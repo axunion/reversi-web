@@ -79,36 +79,6 @@ describe("GameScreen", () => {
     expect(dialog.hasAttribute("data-closed")).toBe(true);
   });
 
-  it("Restart puts the board back to the opening position and closes the menu", () => {
-    vi.useFakeTimers();
-
-    const { container } = render(() => (
-      <GameScreen config={{ mode: "pvp" }} onQuit={() => {}} />
-    ));
-    const buttons = () => container.querySelectorAll(`.${boardStyles.cell}`);
-    const sides = () =>
-      container.querySelectorAll(`.${turnIndicatorStyles.side}`);
-
-    fireEvent.click(buttons()[19]); // d3
-    vi.runAllTimers();
-    expect(buttons()[19].querySelector('[class*="disc"]')).not.toBeNull();
-    expect(sides()[1].classList.contains(turnIndicatorStyles.active)).toBe(
-      true,
-    ); // white's turn now
-
-    fireEvent.click(screen.getByLabelText("Menu"));
-    const dialog = screen.getByRole("dialog");
-    fireEvent.click(screen.getByText("Restart"));
-    vi.advanceTimersByTime(150); // let the confirm view finish swapping in
-    fireEvent.click(screen.getByText("Restart"));
-
-    expect(dialog.hasAttribute("data-closed")).toBe(true);
-    expect(buttons()[19].querySelector('[class*="disc"]')).toBeNull();
-    expect(sides()[0].classList.contains(turnIndicatorStyles.active)).toBe(
-      true,
-    ); // back to black's turn
-  });
-
   it("calls onQuit when Quit to Title is clicked in the menu", async () => {
     const onQuit = vi.fn();
     render(() => <GameScreen config={{ mode: "pvp" }} onQuit={onQuit} />);
@@ -401,8 +371,8 @@ describe("GameScreen AI orchestration", () => {
     });
     expect((buttons()[0] as HTMLButtonElement).disabled).toBe(true);
     // Regression check: without disabling the menu button here too, a player
-    // could still open InGameMenu from behind the crash overlay and Restart,
-    // which resets the board but never clears aiFailure - soft-locking it.
+    // could still open InGameMenu on top of the crash overlay, which should
+    // stay the only interactive surface once the AI has crashed.
     expect((screen.getByLabelText("Menu") as HTMLButtonElement).disabled).toBe(
       true,
     );
@@ -418,7 +388,7 @@ describe("GameScreen AI orchestration", () => {
     ).toHaveLength(2);
   });
 
-  it("closes an already-open menu when the AI crashes, so Restart can't reach a permanently disabled board", async () => {
+  it("closes an already-open menu when the AI crashes", async () => {
     render(() => (
       <GameScreen
         config={{ mode: "ai", difficulty: "easy", playerColor: 2 }}
@@ -525,49 +495,6 @@ describe("GameScreen AI orchestration", () => {
     fireEvent.click(screen.getByRole("button", { name: "Close" }));
 
     expect(buttons()[19].querySelector('[class*="disc"]')).not.toBeNull();
-  });
-
-  it("Restart cancels an in-flight search: the board resets, a stale reply never lands, and a fresh search follows", async () => {
-    vi.useFakeTimers();
-
-    const { container } = render(() => (
-      <GameScreen
-        config={{ mode: "ai", difficulty: "easy", playerColor: 2 }}
-        onQuit={() => {}}
-      />
-    ));
-    const buttons = () => container.querySelectorAll(`.${boardStyles.cell}`);
-
-    workers[0].emit({ type: "ready" });
-    await Promise.resolve();
-    const staleRequestId = workers[0].lastSearchRequestId();
-
-    // Restart during the AI's very first search of the game: turn/animating/
-    // status all already hold their post-reset values, so without the
-    // generation counter in createGameStore.ts, the AI effect would never
-    // re-run and no new search would ever be requested (a real soft-lock
-    // found during verification of this task).
-    fireEvent.click(screen.getByLabelText("Menu"));
-    fireEvent.click(screen.getByText("Restart"));
-    vi.advanceTimersByTime(150); // let the confirm view finish swapping in
-    fireEvent.click(screen.getByText("Restart"));
-
-    // the stale reply, arriving after Restart, must never apply to the reset game
-    workers[0].emit({ type: "bestMove", requestId: staleRequestId, move: 19 });
-    await Promise.resolve();
-
-    expect(buttons()[19].querySelector('[class*="disc"]')).toBeNull();
-
-    // a fresh search must have been requested for the reset game, with a new
-    // requestId distinct from the cancelled one
-    const freshRequestId = workers[0].lastSearchRequestId();
-    expect(freshRequestId).not.toBe(staleRequestId);
-
-    workers[0].emit({ type: "bestMove", requestId: freshRequestId, move: 19 });
-    await vi.runAllTimersAsync();
-
-    expect(buttons()[19].querySelector('[class*="disc"]')).not.toBeNull();
-    expect(screen.queryByText("Thinking…")).toBeNull();
   });
 
   it("Quit to title cancels the in-flight search: a stale reply afterward causes no crash and no move", async () => {

@@ -55,9 +55,8 @@ function GameScreen(props: GameScreenProps) {
     aiClient.init().catch(() => {
       setAiFailure("init");
       // Force the in-game menu closed: it's still fully interactive (Kobalte's
-      // Dialog doesn't know about this failure), and its Restart button resets
-      // the game without clearing aiFailure, which would otherwise soft-lock
-      // the board forever (Board's `disabled` memo stays true regardless).
+      // Dialog doesn't know about this failure), and would otherwise portal on
+      // top of the error banner below instead of yielding to it.
       setMenuOpen(false);
     });
     onCleanup(() => aiClient.dispose());
@@ -131,8 +130,8 @@ function GameScreen(props: GameScreenProps) {
         if (cancelled) return;
         store.setThinking(false);
         // spec 04 §5: if the menu opened during the search, apply the result
-        // only after it closes (handled by the effect below); a Restart/Quit
-        // in the meantime already cancelled this run via onCleanup above.
+        // only after it closes (handled by the effect below); a Quit in the
+        // meantime already cancelled this run via onCleanup above.
         if (menuOpen()) {
           setPendingAiMove(move);
         } else {
@@ -150,8 +149,8 @@ function GameScreen(props: GameScreenProps) {
             setAiFailure("crash");
           }
           // Same reasoning as the init-failure branch above: force the menu
-          // closed so Restart can't reach a state where the board is
-          // permanently disabled without aiFailure ever being cleared.
+          // closed so it yields to the crash overlay instead of portaling on
+          // top of it.
           setMenuOpen(false);
         }
       }
@@ -181,13 +180,6 @@ function GameScreen(props: GameScreenProps) {
       lastMove: store.state.lastMove,
     });
   });
-
-  function restart() {
-    aiClient?.cancel();
-    setPendingAiMove(null);
-    store.reset();
-    setMenuOpen(false);
-  }
 
   function quitToTitle() {
     aiClient?.cancel();
@@ -229,7 +221,6 @@ function GameScreen(props: GameScreenProps) {
       <InGameMenu
         open={menuOpen()}
         onResume={() => setMenuOpen(false)}
-        onRestart={restart}
         onQuitToTitle={quitToTitle}
       />
       <Show when={store.state.winner}>

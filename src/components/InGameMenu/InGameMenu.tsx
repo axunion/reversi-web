@@ -6,11 +6,8 @@ import styles from "./InGameMenu.module.css";
 type InGameMenuProps = {
   open: boolean;
   onResume: () => void;
-  onRestart: () => void;
   onQuitToTitle: () => void;
 };
-
-type ConfirmTarget = "restart" | "quit";
 
 const prefersReducedMotion =
   typeof window !== "undefined" &&
@@ -20,11 +17,7 @@ const prefersReducedMotion =
 // the old view is only swapped out once its shrink-and-fade has actually played.
 const LEAVE_DURATION_MS = prefersReducedMotion ? 0 : 150;
 
-function MenuView(props: {
-  leaving: boolean;
-  onRestart: () => void;
-  onQuit: () => void;
-}) {
+function MenuView(props: { leaving: boolean; onQuit: () => void }) {
   let ref: HTMLDivElement | undefined;
   onMount(() => ref?.focus());
 
@@ -36,9 +29,6 @@ function MenuView(props: {
       data-phase={props.leaving ? "leaving" : undefined}
     >
       <Dialog.Title class={styles.title}>Menu</Dialog.Title>
-      <button type="button" class={styles.button} onClick={props.onRestart}>
-        Restart
-      </button>
       <button type="button" class={styles.button} onClick={props.onQuit}>
         Quit to Title
       </button>
@@ -47,7 +37,6 @@ function MenuView(props: {
 }
 
 function ConfirmView(props: {
-  target: ConfirmTarget;
   leaving: boolean;
   onConfirm: () => void;
   onCancel: () => void;
@@ -62,12 +51,10 @@ function ConfirmView(props: {
       class={styles.view}
       data-phase={props.leaving ? "leaving" : undefined}
     >
-      <Dialog.Title class={styles.title}>
-        {props.target === "restart" ? "Restart game?" : "Quit to title?"}
-      </Dialog.Title>
+      <Dialog.Title class={styles.title}>Quit to title?</Dialog.Title>
       <p class={styles.confirmText}>Current progress will be lost.</p>
       <button type="button" class={styles.button} onClick={props.onConfirm}>
-        {props.target === "restart" ? "Restart" : "Quit to Title"}
+        Quit to Title
       </button>
       <button type="button" class={styles.button} onClick={props.onCancel}>
         Cancel
@@ -77,25 +64,25 @@ function ConfirmView(props: {
 }
 
 function InGameMenu(props: InGameMenuProps) {
-  const [confirming, setConfirming] = createSignal<ConfirmTarget | null>(null);
+  const [confirming, setConfirming] = createSignal(false);
   const [leaving, setLeaving] = createSignal(false);
   let pendingSwap: ReturnType<typeof setTimeout> | undefined;
 
   // Always land back on the main menu the next time the dialog opens,
   // regardless of how it was last closed (Escape, overlay-click, or a
-  // confirmed Restart/Quit) — this also means neither `confirm()` nor the
-  // dismiss path below need to touch `confirming` themselves, so whichever
-  // view was showing simply rides along with the dialog's own close
-  // animation instead of instantly swapping back to "Menu" mid-close.
+  // confirmed Quit) — this also means neither `confirm()` nor the dismiss
+  // path below need to touch `confirming` themselves, so whichever view was
+  // showing simply rides along with the dialog's own close animation
+  // instead of instantly swapping back to "Menu" mid-close.
   createEffect(() => {
     clearTimeout(pendingSwap);
     if (props.open) {
       setLeaving(false);
-      setConfirming(null);
+      setConfirming(false);
     }
   });
 
-  function navigate(next: ConfirmTarget | null) {
+  function navigate(next: boolean) {
     clearTimeout(pendingSwap);
     setLeaving(true);
     pendingSwap = setTimeout(() => {
@@ -106,10 +93,9 @@ function InGameMenu(props: InGameMenuProps) {
     }, LEAVE_DURATION_MS);
   }
 
-  function confirm(target: ConfirmTarget) {
+  function confirm() {
     clearTimeout(pendingSwap);
-    if (target === "restart") props.onRestart();
-    else props.onQuitToTitle();
+    props.onQuitToTitle();
   }
 
   return (
@@ -138,21 +124,14 @@ function InGameMenu(props: InGameMenuProps) {
             <Show
               when={confirming()}
               fallback={
-                <MenuView
-                  leaving={leaving()}
-                  onRestart={() => navigate("restart")}
-                  onQuit={() => navigate("quit")}
-                />
+                <MenuView leaving={leaving()} onQuit={() => navigate(true)} />
               }
             >
-              {(target) => (
-                <ConfirmView
-                  target={target()}
-                  leaving={leaving()}
-                  onConfirm={() => confirm(target())}
-                  onCancel={() => navigate(null)}
-                />
-              )}
+              <ConfirmView
+                leaving={leaving()}
+                onConfirm={confirm}
+                onCancel={() => navigate(false)}
+              />
             </Show>
           </div>
         </Dialog.Content>
