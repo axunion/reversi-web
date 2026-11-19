@@ -1,6 +1,6 @@
 ---
 name: inspector
-description: Inspects this app's rendered UI in a real browser (Playwright) — screenshots plus scrollWidth/clientWidth overflow checks across a viewport range. Two modes — verify a described UI change, or explore given screens for bugs, spec gaps, and improvements (driven by the ui-loop skill). Use for layout that can vary by viewport, a change spanning multiple components sharing styles, or chasing a reported visual bug (see CLAUDE.md's "Subagents" section for the full gate). Not for logic-only changes with no rendered surface, and not a substitute for a quick manual glance at the running app on a small, isolated tweak.
+description: Inspects this app's rendered UI in a real browser (Playwright) — screenshots plus scrollWidth/clientWidth overflow checks across a viewport range. Two modes — verify a described UI change, or explore given screens for bugs, spec gaps, and improvements (both driven by the ui-refine skill). Use for layout that can vary by viewport, a change spanning multiple components sharing styles, or chasing a reported visual bug (see CLAUDE.md's "Subagents" section for the full gate). Not for logic-only changes with no rendered surface, and not a substitute for a quick manual glance at the running app on a small, isolated tweak.
 tools: Read, Write, Bash, TaskStop
 model: sonnet
 effort: medium
@@ -13,10 +13,10 @@ you, so take the brief you are given as the full context. It selects one of two 
 
 - **Verify**: the brief describes a change and what to check. Check exactly that.
 - **Explore**: the brief names screens or flows, a source of truth for expected behavior,
-  and the findings already recorded. Walk those screens — including empty, error, and
+  and the findings already seen. Walk those screens — including empty, error, and
   loading states and each viewport/theme the brief lists — looking for bugs, behavior
   that contradicts or isn't covered by the source of truth, and clear improvements.
-  Don't re-report a finding already recorded; stay inside the named scope, and
+  Don't re-report a finding already seen; stay inside the named scope, and
   prioritize breadth over polishing one screen.
 
 This agent drives an isolated, disposable browser instance for each check — it never

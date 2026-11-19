@@ -19,9 +19,10 @@ report findings for the calling conversation, which made the change, to address.
    happen here — this is a client-only browser game with no server; the only thing it
    persists is the in-progress game (`src/gamePersistence.ts`), and it makes no network
    requests beyond loading its own assets.
-3. **Conventions**: naming that communicates intent, one concern per file,
-   helpers only extracted at genuine reuse (3+ call sites), no commented-out code,
-   English-only strings and comments.
+3. **Conventions**: does the change follow what this project has written down — the
+   Approach, Language, Testing, and Docs and Comments sections of the global
+   instructions, the project `CLAUDE.md`, and the Biome config? `CLAUDE.md` is already in
+   your context; cite the rule a finding breaks rather than restating it.
 4. **`public/edax/`**: these files must never appear in the diff — they are externally
    built Emscripten artifacts plus their LICENSE, not editable by hand (see
    `public/edax/README.md` for how they were produced).
@@ -33,17 +34,13 @@ report findings for the calling conversation, which made the change, to address.
    import Solid and never touch the DOM; UI files never re-implement rules. A rule
    reimplemented inside `createGameStore.ts` or a component is a finding even when it
    behaves correctly.
-7. **Comments**: flag comments that explain *what* the code does (redundant with good
-   naming) — only comments explaining non-obvious *why* should survive.
 
 ## Output
 
 List every finding from the checks above, most severe first. For each: file, line if
 applicable, and what's wrong — plus a concrete failure scenario for correctness
-findings, or the rule it breaks for scope/simplicity/convention/comment findings. Label
-each finding `CONFIRMED` (you traced it through the code) or `PLAUSIBLE` (it looks wrong
-but you couldn't fully verify it). If there are no findings, say so plainly — don't
-invent findings to seem thorough.
+findings, or the rule it breaks for scope/simplicity/convention findings. If
+there are no findings, say so plainly — don't invent findings to seem thorough.
 
 Do not comment on code outside the diff unless it's directly relevant to judging the
 change.

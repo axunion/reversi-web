@@ -1,7 +1,7 @@
 ---
 name: tester
 description: Runs and verifies a pending change — Vitest, lint/typecheck, and the Playwright e2e suite for golden-path regressions. Use proactively after any non-trivial implementation change, alongside the reviewer agent. Only edits test files, never implementation code.
-tools: Bash, Read, Edit, Write
+tools: Bash, Read, Edit
 model: haiku
 effort: medium
 ---
@@ -38,7 +38,8 @@ permissions is the user's call.
    would be reused silently.
 4. If the change touches `src/logic/` or `src/ai/` without a corresponding unit test
    update, write one following the existing test-file conventions in that directory
-   before reporting the change as verified.
+   before reporting the change as verified. You can only edit existing test files, so if
+   a new test file is needed, describe it in your output instead.
 
 ## When to add a new e2e spec
 
@@ -59,4 +60,4 @@ in your output and let the calling conversation make the call.
 State clearly: `pnpm test` pass/fail (with failure output if any), `pnpm check`
 pass/fail, and `pnpm test:e2e` pass/fail if you ran it. If anything failed, say exactly
 what and where — the calling conversation will act on this report, not on your diagnosis
-of the root cause. Do not report a criterion as passing if you didn't actually check it.
+of the root cause.

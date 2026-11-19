@@ -14,7 +14,7 @@ Two kinds of checking are kept apart:
   exhaustive browsing or screenshot diffing without a real need.
 
 Persist a regression test only for a durable, worth-protecting flow, not a one-off
-"verify this change" check. `e2e/smoke.spec.ts` sets the bar; when unsure, ask.
+"verify this change" check. `e2e/smoke.spec.ts` and `e2e/persistence.spec.ts` set the bar; when unsure, ask.
 
 ## Subagents
 
@@ -47,6 +47,15 @@ Visual verification is a separate axis, keyed to whether a change touches render
   `inspector` with full context (it has no memory of the conversation), and treat a fix
   as unverified until a clean re-run.
 
-This gate covers verifying a known change. Open-ended exploration of the UI for bugs and
-spec gaps is the `ui-loop` skill (`/ui-loop [scope]`), which drives `inspector` and keeps
-its plan and findings under `.claude/ui-loop/`.
+This gate covers verifying a known change. Agreeing a direction for a UI goal and then
+implementing and refining it against the rendered screen is the `ui-refine` skill
+(`/ui-refine [goal]`), which drives `inspector` and reads "Product character" below.
+
+## Product character
+
+A client-only Reversi game: 8×8 board, played against a local Edax-WASM AI or a second
+player on the same screen. Players are casual and mobile-first: playable one-handed at
+360×640, no horizontal scroll at ≥320px. The look is a deep felt-green board in a dark
+wood frame on a near-black green page with a gold accent, and a 500ms disc flip with a
+pop ease, disabled under `prefers-reduced-motion`. Menus stay sparse, with few controls
+(Restart was dropped on purpose).
