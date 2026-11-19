@@ -61,8 +61,8 @@ crashes on a *later*, unrelated-looking WebAssembly function-table lookup
 with a generic `null function or function signature mismatch` — a classic
 Emscripten symptom of stack corruption, not a hint that stack size is the
 actual problem. 8 MiB was not tuned to a minimum; it's a generously large
-value confirmed to run a 10-move game across all three difficulty levels
-(1/5/11) without overflowing again.
+value confirmed to run a 10-move game cycling engine levels 1/5/11 (the lowest,
+a middle, and the highest; the app now uses 1/2/4/7/11) without overflowing again.
 
 `ENVIRONMENT=worker` matches the actual runtime (`src/ai/edax.worker.ts`
 runs inside a Web Worker). An earlier build of this file used
@@ -81,7 +81,7 @@ the app needs no COOP/COEP headers.
 
 ## `emscripten-portability.patch`
 
-Four small changes to upstream's source, all mechanical rather than
+Three small changes to upstream's source, all mechanical rather than
 behavioral:
 
 1. **`bit.h`, `search.h`**: three internal functions/globals
@@ -140,7 +140,7 @@ explicitly to `/edax/<file>` on every module instantiation.
 
 ## Smoke test
 
-Two layers, both passing:
+Three layers, all passing:
 
 1. **Node** — quick local sanity check during development: initialized
    the module with `eval.dat` in place, set the opening position, searched
@@ -162,7 +162,7 @@ Two layers, both passing:
    request's promise is left permanently unsettled while the new one
    resolves correctly, matching `aiClient.ts`'s requestId-guard contract
    against the real engine, not just the mocked-worker unit tests.
-3. **Multi-move real game, all difficulty levels** (same Playwright/Chromium
+3. **Multi-move real game, levels 1/5/11** (same Playwright/Chromium
    setup) — this is what caught the stack-overflow bug above: single-search
    smoke tests from the opening position never reach the recursion depth
    where it manifests. Played a full 10-move sequence through real
