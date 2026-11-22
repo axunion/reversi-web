@@ -394,10 +394,11 @@ describe("GameScreen AI orchestration", () => {
   );
 
   it("retries once on a search failure, then shows the crash overlay on a second failure", async () => {
+    const onQuit = vi.fn();
     const { container } = render(() => (
       <GameScreen
         config={{ mode: "ai", difficulty: "easy", playerColor: 2 }}
-        onQuit={() => {}}
+        onQuit={onQuit}
       />
     ));
     const buttons = () => container.querySelectorAll(`.${boardStyles.cell}`);
@@ -451,6 +452,9 @@ describe("GameScreen AI orchestration", () => {
     expect(
       workers[0].postMessage.mock.calls.filter(([m]) => m.type === "search"),
     ).toHaveLength(2);
+
+    fireEvent.click(screen.getByText("Back to Title"));
+    expect(onQuit).toHaveBeenCalledOnce();
   });
 
   it("closes an already-open menu when the AI crashes", async () => {
