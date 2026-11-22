@@ -30,10 +30,9 @@ type GameState = {
   thinking: boolean;
   animating: boolean;
   // Bumped on every reset(). Lets a consumer detect "the game was reset" even
-  // in the one case where every other field happens to end up unchanged: a
-  // Restart during the AI's very first search of a game (turn/animating/
-  // winner all already hold their initial values, so nothing else here would
-  // otherwise flag the reset).
+  // when every other field happens to end up unchanged. reset() is currently
+  // only reached through Rematch, where winner always changes, so this is a
+  // safeguard rather than something a current path relies on.
   generation: number;
 };
 
