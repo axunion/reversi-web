@@ -51,6 +51,23 @@ function GameScreen(props: GameScreenProps) {
       aiFailure() !== null,
   );
 
+  // The AI only starts searching once the flip settles, but the turn has
+  // already handed over to it, so show it as thinking from the player's move
+  // onward. Checking who placed the last disc keeps this off during the AI's
+  // own flip when it keeps the turn (the player passes) or the game ends.
+  const aiThinking = () => {
+    if (store.state.thinking) return true;
+    if (!aiConfig || aiFailure() !== null || !store.state.animating) {
+      return false;
+    }
+    const { board, lastMove, turn } = store.state;
+    return (
+      lastMove !== null &&
+      board[lastMove] === aiConfig.playerColor &&
+      turn === opponent(aiConfig.playerColor)
+    );
+  };
+
   if (aiClient) {
     aiClient.init().catch(() => {
       setAiFailure("init");
@@ -165,8 +182,9 @@ function GameScreen(props: GameScreenProps) {
   });
 
   // Persists the in-progress game so a reload can resume it (App.tsx reads
-  // this back on startup). Skips while animating: board/turn aren't settled
-  // together yet mid-flip, so saving here could restore a torn state.
+  // this back on startup). Skips while animating: the winner is only set once
+  // the flip settles, so saving the final move mid-flip would store a finished
+  // board as an in-progress game.
   createEffect(() => {
     if (store.state.animating) return;
     if (store.state.winner !== null) {
@@ -205,7 +223,7 @@ function GameScreen(props: GameScreenProps) {
       <TurnIndicator
         turn={store.state.turn}
         score={store.score()}
-        thinking={store.state.thinking}
+        thinking={aiThinking()}
         passMessage={store.state.passMessage}
         moveNumber={moveNumber(store.state.board)}
       />

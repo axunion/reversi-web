@@ -7,6 +7,7 @@ import {
   getLegalMoves,
   initialBoard,
   opponent,
+  type Progress,
   progressAfter,
   SIZE,
 } from "../../logic/rules";
@@ -69,9 +70,9 @@ export function createGameStore(restore?: RestoreState) {
     clearTimeout(passTimeout);
   });
 
-  // !animating skips a recompute against the pre-flip board/mover pair that a
-  // move-in-progress leaves stale for its duration; callers must not read the
-  // resulting [] as "no legal moves" (i.e. a pass) during that window.
+  // !animating locks input and hides the hints for the flip's duration;
+  // callers must not read the resulting [] as "no legal moves" (i.e. a pass)
+  // during that window.
   const legalMoves = createMemo(() =>
     state.winner === null && !state.animating
       ? getLegalMoves(state.board, state.turn)
@@ -80,16 +81,8 @@ export function createGameStore(restore?: RestoreState) {
 
   const score = createMemo(() => countDiscs(state.board));
 
-  function finishMove(mover: Player, board: Board) {
-    const progress = progressAfter(board, mover);
-
-    if (progress.kind === "play") {
-      setState("turn", progress.turn);
-      return;
-    }
-
+  function finishMove(mover: Player, progress: Progress) {
     if (progress.kind === "pass") {
-      setState("turn", progress.turn);
       setState("passMessage", opponent(mover));
       clearTimeout(passTimeout);
       passTimeout = setTimeout(
@@ -99,7 +92,9 @@ export function createGameStore(restore?: RestoreState) {
       return;
     }
 
-    setState("winner", progress.winner);
+    if (progress.kind === "gameOver") {
+      setState("winner", progress.winner);
+    }
   }
 
   function play(index: number) {
@@ -117,24 +112,32 @@ export function createGameStore(restore?: RestoreState) {
       if (delay > maxDelay) maxDelay = delay;
     }
 
+    const progress = progressAfter(board, mover);
+
     // batch(): play() can be invoked from outside a Solid-tracked context (the
     // AI orchestration effect calls it after an await, not from a DOM event),
     // where Solid doesn't auto-batch consecutive setState calls. Without this,
     // an effect that reads more than one of these fields can observe a torn
-    // intermediate state - e.g. animating already false but turn not yet
-    // updated - and react to it as if it were a real, settled state.
+    // intermediate state - e.g. animating already false but winner not yet
+    // set after the AI's final move, which would start a search on a finished
+    // board - and react to it as if it were a real, settled state.
     batch(() => {
       setState("board", board);
       setState("lastMove", index);
       setState("flipDelays", flipDelays);
       setState("animating", true);
+      // The turn hands over as soon as the move is placed, so the turn
+      // indicator moves with the board instead of lagging behind the flip.
+      // Input and the AI's next search stay gated on `animating`; the pass
+      // message and the winner wait for the flip to settle in finishMove().
+      if (progress.kind !== "gameOver") setState("turn", progress.turn);
     });
 
     clearTimeout(animationTimeout);
     animationTimeout = setTimeout(() => {
       batch(() => {
         setState("animating", false);
-        finishMove(mover, board);
+        finishMove(mover, progress);
       });
     }, maxDelay + FLIP_DURATION_MS);
   }

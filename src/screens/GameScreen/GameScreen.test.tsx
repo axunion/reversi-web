@@ -25,7 +25,7 @@ afterEach(() => {
 });
 
 describe("GameScreen", () => {
-  it("plays a move through the real DOM: board updates immediately, input locks during the flip animation, and the turn indicator hands over once it settles", () => {
+  it("plays a move through the real DOM: board updates immediately, the turn indicator hands over at once, and input locks until the flip animation settles", () => {
     vi.useFakeTimers();
 
     const { container } = render(() => (
@@ -46,18 +46,18 @@ describe("GameScreen", () => {
     expect(buttons()[27].querySelector('[class*="disc"]')).not.toBeNull(); // d4, flipped
     expect(buttons()[19].classList.contains(boardStyles.lastMove)).toBe(true);
     expect((buttons()[0] as HTMLButtonElement).disabled).toBe(true); // locked mid-animation
-    expect(sides()[0].classList.contains(turnIndicatorStyles.active)).toBe(
+    expect(sides()[1].classList.contains(turnIndicatorStyles.active)).toBe(
       true,
-    ); // not handed over yet
+    );
+    expect(sides()[0].classList.contains(turnIndicatorStyles.active)).toBe(
+      false,
+    );
 
     vi.runAllTimers();
 
     expect((buttons()[0] as HTMLButtonElement).disabled).toBe(false);
     expect(sides()[1].classList.contains(turnIndicatorStyles.active)).toBe(
       true,
-    );
-    expect(sides()[0].classList.contains(turnIndicatorStyles.active)).toBe(
-      false,
     );
   });
 
@@ -327,6 +327,71 @@ describe("GameScreen AI orchestration", () => {
       workers[0].postMessage.mock.calls.filter(([m]) => m.type === "search"),
     ).toHaveLength(1);
   });
+
+  it("shows the AI as thinking from the player's move onward, but only searches once the flip settles", async () => {
+    vi.useFakeTimers();
+
+    const { container } = render(() => (
+      <GameScreen
+        config={{ mode: "ai", difficulty: "easy", playerColor: 1 }}
+        onQuit={() => {}}
+      />
+    ));
+    const buttons = () => container.querySelectorAll(`.${boardStyles.cell}`);
+    const searches = () =>
+      workers[0].postMessage.mock.calls.filter(([m]) => m.type === "search");
+
+    workers[0].emit({ type: "ready" });
+    await Promise.resolve();
+    expect(screen.queryByText("Thinking…")).toBeNull();
+
+    fireEvent.click(buttons()[19]); // d3
+
+    expect(screen.getByText("Thinking…")).not.toBeNull();
+    expect(searches()).toHaveLength(0);
+
+    await vi.advanceTimersByTimeAsync(1000); // past the flip animation
+
+    expect(searches()).toHaveLength(1);
+    expect(screen.getByText("Thinking…")).not.toBeNull();
+  });
+
+  it.each([
+    ["the player must pass", { kind: "pass" as const, turn: 1 as const }],
+    ["the game ends", { kind: "gameOver" as const, winner: 1 as const }],
+  ])(
+    "doesn't show the AI as thinking during its own flip when %s",
+    async (_, progress) => {
+      vi.resetModules();
+      vi.doMock("../../logic/rules", async (importOriginal) => {
+        const actual =
+          await importOriginal<typeof import("../../logic/rules")>();
+        return { ...actual, progressAfter: () => progress };
+      });
+      const { default: MockedGameScreen } = await import("./GameScreen");
+
+      vi.useFakeTimers();
+
+      // playerColor 2: the AI plays black and keeps the turn after its move.
+      const { container } = render(() => (
+        <MockedGameScreen
+          config={{ mode: "ai", difficulty: "easy", playerColor: 2 }}
+          onQuit={() => {}}
+        />
+      ));
+      const buttons = () => container.querySelectorAll(`.${boardStyles.cell}`);
+
+      workers[0].emit({ type: "ready" });
+      await Promise.resolve();
+
+      const requestId = workers[0].lastSearchRequestId();
+      workers[0].emit({ type: "bestMove", requestId, move: 19 }); // d3
+      await vi.advanceTimersByTimeAsync(600); // aiClient's minimum thinking time
+
+      expect(buttons()[19].querySelector('[class*="disc"]')).not.toBeNull();
+      expect(screen.queryByText("Thinking…")).toBeNull(); // mid-flip
+    },
+  );
 
   it("retries once on a search failure, then shows the crash overlay on a second failure", async () => {
     const { container } = render(() => (

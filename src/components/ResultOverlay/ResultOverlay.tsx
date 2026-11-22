@@ -41,7 +41,11 @@ function ResultOverlay(props: ResultOverlayProps) {
               <DiscCount player={2} count={props.score.white} />
             </div>
           </div>
-          <button type="button" class={styles.button} onClick={props.onRematch}>
+          <button
+            type="button"
+            class={styles.primary}
+            onClick={props.onRematch}
+          >
             Rematch
           </button>
           <button

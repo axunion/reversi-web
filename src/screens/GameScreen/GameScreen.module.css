@@ -6,7 +6,7 @@
   align-items: center;
   justify-content: center;
   gap: 16px;
-  padding: 24px;
+  padding: var(--screen-pad);
 }
 
 .menuButton {
@@ -23,7 +23,7 @@
   background: transparent;
   color: var(--text);
   cursor: pointer;
-  opacity: 0.5;
+  opacity: 0.8;
 }
 
 .menuButton:hover,
