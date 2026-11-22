@@ -20,11 +20,13 @@ actually installed.
 
 1. **Current API usage**: Solid.js reactivity primitives and stores, Kobalte's headless
    `Dialog` / `RadioGroup` composition, Vitest configuration, and Web Worker / Emscripten
-   module loading under Vite. Look it up. Do not answer from memory.
+   module loading under Vite. Look it up. Do not answer from memory. Use `WebSearch` to
+   find the library's own official documentation, then `WebFetch` that page directly —
+   don't settle for a search-result snippet or a third-party blog post when the primary
+   source is reachable.
 2. **Version fit**: check the version this project pins before trusting any doc page.
-   This project sits on unusually new pins — TypeScript ~7.0.2, Vite 8, Vitest 4,
-   Biome 2.5.5, Solid 1.9, Kobalte 0.13 — so doc pages written for the previous major
-   are a real hazard. Flag it when current docs describe an API the pinned version
+   This project tracks unusually new majors, so doc pages written for the previous
+   major are a real hazard. Flag it when current docs describe an API the pinned version
    doesn't have, or when the pinned version relies on something since deprecated.
 3. **Recommended pattern**: prefer what the library's own docs endorse over the first
    thing that merely works — that difference is most of this brief's value.
