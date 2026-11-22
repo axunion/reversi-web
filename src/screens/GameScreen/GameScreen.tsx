@@ -113,10 +113,6 @@ function GameScreen(props: GameScreenProps) {
     const turn = store.state.turn;
     const animating = store.state.animating;
     const winner = store.state.winner;
-    // Tracked so any reset() retriggers this effect, even if turn/animating/
-    // winner all happened to already hold their post-reset values
-    // (see `generation` in createGameStore.ts).
-    void store.state.generation;
 
     if (!aiClient || !aiConfig || aiFailure() !== null) return;
     if (winner !== null || animating) return;

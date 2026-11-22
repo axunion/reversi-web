@@ -393,6 +393,47 @@ describe("GameScreen AI orchestration", () => {
     },
   );
 
+  it("starts a fresh AI search after Rematch when the AI moves first", async () => {
+    vi.resetModules();
+    vi.doMock("../../logic/rules", async (importOriginal) => {
+      const actual = await importOriginal<typeof import("../../logic/rules")>();
+      return {
+        ...actual,
+        progressAfter: () => ({
+          kind: "gameOver" as const,
+          winner: 1 as const,
+        }),
+      };
+    });
+    const { default: MockedGameScreen } = await import("./GameScreen");
+
+    vi.useFakeTimers();
+
+    // playerColor 2: the AI plays black, so it moves first in every game.
+    render(() => (
+      <MockedGameScreen
+        config={{ mode: "ai", difficulty: "easy", playerColor: 2 }}
+        onQuit={() => {}}
+      />
+    ));
+    const searches = () =>
+      workers[0].postMessage.mock.calls.filter(([m]) => m.type === "search");
+
+    workers[0].emit({ type: "ready" });
+    await Promise.resolve();
+    expect(searches()).toHaveLength(1);
+
+    const requestId = workers[0].lastSearchRequestId();
+    workers[0].emit({ type: "bestMove", requestId, move: 19 }); // ends the game
+    await vi.runAllTimersAsync();
+
+    fireEvent.click(screen.getByText("Rematch"));
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(searches()).toHaveLength(2);
+    expect(screen.getByText("Thinking…")).not.toBeNull();
+  });
+
   it("retries once on a search failure, then shows the crash overlay on a second failure", async () => {
     const onQuit = vi.fn();
     const { container } = render(() => (

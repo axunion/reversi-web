@@ -29,11 +29,6 @@ type GameState = {
   passMessage: Player | null;
   thinking: boolean;
   animating: boolean;
-  // Bumped on every reset(). Lets a consumer detect "the game was reset" even
-  // when every other field happens to end up unchanged. reset() is currently
-  // only reached through Rematch, where winner always changes, so this is a
-  // safeguard rather than something a current path relies on.
-  generation: number;
 };
 
 function chebyshevDistance(a: number, b: number): number {
@@ -44,7 +39,7 @@ function chebyshevDistance(a: number, b: number): number {
   return Math.max(Math.abs(rowA - rowB), Math.abs(colA - colB));
 }
 
-function initialState(generation: number, restore?: RestoreState): GameState {
+function initialState(restore?: RestoreState): GameState {
   return {
     board: restore?.board ?? initialBoard(),
     turn: restore?.turn ?? 1,
@@ -54,12 +49,11 @@ function initialState(generation: number, restore?: RestoreState): GameState {
     passMessage: null,
     thinking: false,
     animating: false,
-    generation,
   };
 }
 
 export function createGameStore(restore?: RestoreState) {
-  const [state, setState] = createStore<GameState>(initialState(0, restore));
+  const [state, setState] = createStore<GameState>(initialState(restore));
 
   let animationTimeout: ReturnType<typeof setTimeout> | undefined;
   let passTimeout: ReturnType<typeof setTimeout> | undefined;
@@ -144,7 +138,7 @@ export function createGameStore(restore?: RestoreState) {
   function reset() {
     clearTimeout(animationTimeout);
     clearTimeout(passTimeout);
-    setState(initialState(state.generation + 1));
+    setState(initialState());
   }
 
   function setThinking(thinking: boolean) {
