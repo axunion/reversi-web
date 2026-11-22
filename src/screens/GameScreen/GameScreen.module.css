@@ -37,30 +37,13 @@
   opacity: 0.3;
 }
 
-.button {
-  composes: button from "../../styles/button.module.css";
+.primary {
+  composes: primary from "../../styles/button.module.css";
 }
 
-.errorBanner {
-  position: absolute;
-  top: 12px;
-  left: 50%;
-  z-index: 1;
-  display: flex;
-  width: min(90vw, 360px);
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 16px;
-  border-radius: var(--radius);
-  background: var(--frame);
-  box-shadow: 0 8px 20px rgb(0 0 0 / 0.4);
-  color: var(--text);
-  text-align: center;
-  transform: translateX(-50%);
-}
-
-.crashOverlay {
+/* Blocks the whole game for both AI failures (couldn't start, crashed):
+   either way the game can't go on, and Back to Title is the only way out. */
+.failureOverlay {
   composes: overlay from "../../styles/dialog.module.css";
   z-index: 2;
   display: flex;
@@ -68,7 +51,7 @@
   justify-content: center;
 }
 
-.crashPanel {
+.failurePanel {
   composes: panel from "../../styles/dialog.module.css";
   display: flex;
   width: min(90vw, 320px);

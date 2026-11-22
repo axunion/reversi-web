@@ -495,7 +495,7 @@ describe("GameScreen AI orchestration", () => {
     expect(dialog.hasAttribute("data-closed")).toBe(true);
   });
 
-  it("disables the menu button once AI init fails, so the menu can't be opened from behind the error banner", async () => {
+  it("disables the menu button once AI init fails, so the menu can't be opened from behind the failure overlay", async () => {
     render(() => (
       <GameScreen
         config={{ mode: "ai", difficulty: "easy", playerColor: 2 }}
@@ -528,6 +528,31 @@ describe("GameScreen AI orchestration", () => {
     });
     expect(menuButton.disabled).toBe(true);
     expect(dialog.hasAttribute("data-closed")).toBe(true);
+  });
+
+  it("calls onQuit when Back to Title is clicked on the init-failure overlay", async () => {
+    const onQuit = vi.fn();
+    render(() => (
+      <GameScreen
+        config={{ mode: "ai", difficulty: "easy", playerColor: 2 }}
+        onQuit={onQuit}
+      />
+    ));
+
+    workers[0].emit({
+      type: "error",
+      fatal: true,
+      message: "worker failed to load",
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("The computer opponent could not start."),
+      ).not.toBeNull();
+    });
+    fireEvent.click(screen.getByText("Back to Title"));
+
+    expect(onQuit).toHaveBeenCalledOnce();
   });
 
   it("defers an AI move that resolves while the menu is open, and applies it once the menu closes", async () => {

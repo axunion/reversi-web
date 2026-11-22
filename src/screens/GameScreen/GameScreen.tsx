@@ -73,7 +73,7 @@ function GameScreen(props: GameScreenProps) {
       setAiFailure("init");
       // Force the in-game menu closed: it's still fully interactive (Kobalte's
       // Dialog doesn't know about this failure), and would otherwise portal on
-      // top of the error banner below instead of yielding to it.
+      // top of the failure overlay below instead of yielding to it.
       setMenuOpen(false);
     });
     onCleanup(() => aiClient.dispose());
@@ -166,7 +166,7 @@ function GameScreen(props: GameScreenProps) {
             setAiFailure("crash");
           }
           // Same reasoning as the init-failure branch above: force the menu
-          // closed so it yields to the crash overlay instead of portaling on
+          // closed so it yields to the failure overlay instead of portaling on
           // top of it.
           setMenuOpen(false);
         }
@@ -252,23 +252,25 @@ function GameScreen(props: GameScreenProps) {
           />
         )}
       </Show>
-      <Show when={aiFailure() === "init"}>
-        <div class={styles.errorBanner}>
-          <p>The computer opponent could not start.</p>
-          <button type="button" class={styles.button} onClick={quitToTitle}>
-            Back to Title
-          </button>
-        </div>
-      </Show>
-      <Show when={aiFailure() === "crash"}>
-        <div class={styles.crashOverlay}>
-          <div class={styles.crashPanel}>
-            <p>The computer opponent crashed.</p>
-            <button type="button" class={styles.button} onClick={quitToTitle}>
-              Back to Title
-            </button>
+      <Show when={aiFailure()}>
+        {(failure) => (
+          <div class={styles.failureOverlay}>
+            <div class={styles.failurePanel}>
+              <p>
+                {failure() === "init"
+                  ? "The computer opponent could not start."
+                  : "The computer opponent crashed."}
+              </p>
+              <button
+                type="button"
+                class={styles.primary}
+                onClick={quitToTitle}
+              >
+                Back to Title
+              </button>
+            </div>
           </div>
-        </div>
+        )}
       </Show>
     </div>
   );
