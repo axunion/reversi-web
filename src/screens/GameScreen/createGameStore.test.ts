@@ -1,11 +1,22 @@
 import { createRoot } from "solid-js";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { initialBoard } from "../../logic/rules";
+import { initialBoard, type Progress } from "../../logic/rules";
 import {
   createGameStore,
   FLIP_DURATION_MS,
   FLIP_STAGGER_MS,
 } from "./createGameStore";
+
+// Re-imports createGameStore with progressAfter stubbed, so a test can force
+// a pass or game over without building a board that produces one.
+async function importStoreWith(progress: Progress) {
+  vi.resetModules();
+  vi.doMock("../../logic/rules", async (importOriginal) => ({
+    ...(await importOriginal<typeof import("../../logic/rules")>()),
+    progressAfter: () => progress,
+  }));
+  return (await import("./createGameStore")).createGameStore;
+}
 
 afterEach(() => {
   vi.useRealTimers();
@@ -66,21 +77,10 @@ describe("createGameStore", () => {
   });
 
   it("sets winner right after the last legal move, with no further input", async () => {
-    vi.resetModules();
-    vi.doMock("../../logic/rules", async (importOriginal) => {
-      const actual = await importOriginal<typeof import("../../logic/rules")>();
-      return {
-        ...actual,
-        progressAfter: () => ({
-          kind: "gameOver" as const,
-          winner: 1 as const,
-        }),
-      };
+    const createGameStoreWithGameOver = await importStoreWith({
+      kind: "gameOver" as const,
+      winner: 1 as const,
     });
-
-    const { createGameStore: createGameStoreWithGameOver } = await import(
-      "./createGameStore"
-    );
 
     vi.useFakeTimers();
 
@@ -101,18 +101,10 @@ describe("createGameStore", () => {
   });
 
   it("keeps the turn with the mover at once on a pass, and shows the pass message only after the flip", async () => {
-    vi.resetModules();
-    vi.doMock("../../logic/rules", async (importOriginal) => {
-      const actual = await importOriginal<typeof import("../../logic/rules")>();
-      return {
-        ...actual,
-        progressAfter: () => ({ kind: "pass" as const, turn: 1 as const }),
-      };
+    const createGameStoreWithPass = await importStoreWith({
+      kind: "pass" as const,
+      turn: 1 as const,
     });
-
-    const { createGameStore: createGameStoreWithPass } = await import(
-      "./createGameStore"
-    );
 
     vi.useFakeTimers();
 
@@ -139,18 +131,10 @@ describe("createGameStore", () => {
   });
 
   it("reset mid-animation discards the pending settle, so no pass message lands afterwards", async () => {
-    vi.resetModules();
-    vi.doMock("../../logic/rules", async (importOriginal) => {
-      const actual = await importOriginal<typeof import("../../logic/rules")>();
-      return {
-        ...actual,
-        progressAfter: () => ({ kind: "pass" as const, turn: 1 as const }),
-      };
+    const createGameStoreWithPass = await importStoreWith({
+      kind: "pass" as const,
+      turn: 1 as const,
     });
-
-    const { createGameStore: createGameStoreWithPass } = await import(
-      "./createGameStore"
-    );
 
     vi.useFakeTimers();
 

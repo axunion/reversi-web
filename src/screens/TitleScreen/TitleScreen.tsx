@@ -78,13 +78,13 @@ function TitleScreen(props: TitleScreenProps) {
               </RadioGroup.ItemControl>
             </RadioGroup.Item>
           </div>
+          <p
+            class={styles.note}
+            data-hidden={props.aiProbed && !props.aiAvailable ? undefined : ""}
+          >
+            Computer opponent unavailable
+          </p>
         </RadioGroup>
-        <p
-          class={styles.note}
-          data-hidden={props.aiProbed && !props.aiAvailable ? undefined : ""}
-        >
-          Computer opponent unavailable
-        </p>
 
         <div
           class={styles.aiPanel}
@@ -151,7 +151,7 @@ function TitleScreen(props: TitleScreenProps) {
           </RadioGroup>
         </div>
 
-        <button type="button" class={styles.button} onClick={handleStart}>
+        <button type="button" class={styles.primary} onClick={handleStart}>
           Start Game
         </button>
       </div>

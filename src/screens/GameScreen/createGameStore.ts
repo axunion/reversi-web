@@ -7,7 +7,6 @@ import {
   getLegalMoves,
   initialBoard,
   opponent,
-  type Progress,
   progressAfter,
   SIZE,
 } from "../../logic/rules";
@@ -74,22 +73,6 @@ export function createGameStore(restore?: RestoreState) {
 
   const score = createMemo(() => countDiscs(state.board));
 
-  function finishMove(mover: Player, progress: Progress) {
-    if (progress.kind === "pass") {
-      setState("passMessage", opponent(mover));
-      clearTimeout(passTimeout);
-      passTimeout = setTimeout(
-        () => setState("passMessage", null),
-        PASS_MESSAGE_MS,
-      );
-      return;
-    }
-
-    if (progress.kind === "gameOver") {
-      setState("winner", progress.winner);
-    }
-  }
-
   function play(index: number) {
     if (state.winner !== null || state.animating) return;
     if (!legalMoves().includes(index)) return;
@@ -122,7 +105,7 @@ export function createGameStore(restore?: RestoreState) {
       // The turn hands over as soon as the move is placed, so the turn
       // indicator moves with the board instead of lagging behind the flip.
       // Input and the AI's next search stay gated on `animating`; the pass
-      // message and the winner wait for the flip to settle in finishMove().
+      // message and the winner wait for the flip to settle below.
       if (progress.kind !== "gameOver") setState("turn", progress.turn);
     });
 
@@ -130,7 +113,16 @@ export function createGameStore(restore?: RestoreState) {
     animationTimeout = setTimeout(() => {
       batch(() => {
         setState("animating", false);
-        finishMove(mover, progress);
+        if (progress.kind === "pass") {
+          setState("passMessage", opponent(mover));
+          clearTimeout(passTimeout);
+          passTimeout = setTimeout(
+            () => setState("passMessage", null),
+            PASS_MESSAGE_MS,
+          );
+        } else if (progress.kind === "gameOver") {
+          setState("winner", progress.winner);
+        }
       });
     }, maxDelay + FLIP_DURATION_MS);
   }
