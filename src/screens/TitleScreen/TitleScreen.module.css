@@ -35,15 +35,19 @@
   gap: 12px;
 }
 
-.button {
-  composes: button from "../../styles/button.module.css";
+.primary {
+  composes: primary from "../../styles/button.module.css";
   margin-top: 35px;
 }
 
+/* Lives inside the opponent field so its always-reserved line (see
+   .note[data-hidden]) sits in that field's tight gap rather than adding a
+   second menu gap between the toggle and the AI panel. */
 .note {
-  margin: 4px 0 0;
+  margin: 0;
   color: var(--text);
   font-size: 0.8rem;
+  line-height: 1.2;
   text-align: center;
   opacity: 0.7;
 }

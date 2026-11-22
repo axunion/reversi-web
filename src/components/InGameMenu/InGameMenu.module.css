@@ -90,3 +90,7 @@
 .button {
   composes: button from "../../styles/button.module.css";
 }
+
+.primary {
+  composes: primary from "../../styles/button.module.css";
+}

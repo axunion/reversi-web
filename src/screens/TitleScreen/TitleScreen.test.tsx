@@ -95,6 +95,32 @@ describe("TitleScreen", () => {
     expect(onStart).toHaveBeenCalledWith({ mode: "pvp" });
   });
 
+  it("shows vs Player selected once the probe settles as unavailable", () => {
+    render(() => (
+      <TitleScreen onStart={() => {}} aiAvailable={false} aiProbed={true} />
+    ));
+
+    expect(
+      (screen.getByRole("radio", { name: "vs Player" }) as HTMLInputElement)
+        .checked,
+    ).toBe(true);
+    expect(
+      (screen.getByRole("radio", { name: "Black" }) as HTMLInputElement)
+        .disabled,
+    ).toBe(true);
+  });
+
+  it("keeps vs AI selected while the probe is still pending", () => {
+    render(() => (
+      <TitleScreen onStart={() => {}} aiAvailable={false} aiProbed={false} />
+    ));
+
+    expect(
+      (screen.getByRole("radio", { name: "vs AI" }) as HTMLInputElement)
+        .checked,
+    ).toBe(true);
+  });
+
   it("keeps the AI options panel inert while vs Player is selected", () => {
     const onStart = vi.fn();
     render(() => (

@@ -20,6 +20,10 @@ function TitleScreen(props: TitleScreenProps) {
   // most loads. The "vs AI" chip stays disabled until aiAvailable catches
   // up, and handleStart falls back to pvp if it's clicked before that.
   const [mode, setMode] = createSignal<Mode>("ai");
+  // Once the probe has settled as unavailable, show what Start Game will
+  // actually do (handleStart's pvp fallback) instead of a stale vs AI.
+  const shownMode = (): Mode =>
+    props.aiProbed && !props.aiAvailable ? "pvp" : mode();
   const [difficulty, setDifficulty] = createSignal<Difficulty>("normal");
   const [playerColor, setPlayerColor] = createSignal<Player>(1);
 
@@ -47,7 +51,7 @@ function TitleScreen(props: TitleScreenProps) {
       <div class={styles.menu}>
         <RadioGroup
           class={styles.field}
-          value={mode()}
+          value={shownMode()}
           onChange={handleModeChange}
           name="mode"
         >
@@ -74,24 +78,24 @@ function TitleScreen(props: TitleScreenProps) {
               </RadioGroup.ItemControl>
             </RadioGroup.Item>
           </div>
+          <p
+            class={styles.note}
+            data-hidden={props.aiProbed && !props.aiAvailable ? undefined : ""}
+          >
+            Computer opponent unavailable
+          </p>
         </RadioGroup>
-        <p
-          class={styles.note}
-          data-hidden={props.aiProbed && !props.aiAvailable ? undefined : ""}
-        >
-          Computer opponent unavailable
-        </p>
 
         <div
           class={styles.aiPanel}
-          data-disabled={mode() !== "ai" ? "" : undefined}
+          data-disabled={shownMode() !== "ai" ? "" : undefined}
         >
           <RadioGroup
             class={styles.field}
             value={difficulty()}
             onChange={(value) => setDifficulty(value as Difficulty)}
             name="difficulty"
-            disabled={mode() !== "ai"}
+            disabled={shownMode() !== "ai"}
           >
             <RadioGroup.Label class={styles.fieldLabel}>
               Difficulty
@@ -121,7 +125,7 @@ function TitleScreen(props: TitleScreenProps) {
             value={playerColor() === 1 ? "black" : "white"}
             onChange={(value) => setPlayerColor(value === "black" ? 1 : 2)}
             name="player-color"
-            disabled={mode() !== "ai"}
+            disabled={shownMode() !== "ai"}
           >
             <RadioGroup.Label class={styles.fieldLabel}>
               Play as
@@ -147,7 +151,7 @@ function TitleScreen(props: TitleScreenProps) {
           </RadioGroup>
         </div>
 
-        <button type="button" class={styles.button} onClick={handleStart}>
+        <button type="button" class={styles.primary} onClick={handleStart}>
           Start Game
         </button>
       </div>

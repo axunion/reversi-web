@@ -56,7 +56,7 @@ function ConfirmView(props: {
       <button type="button" class={styles.button} onClick={props.onConfirm}>
         Quit to Title
       </button>
-      <button type="button" class={styles.button} onClick={props.onCancel}>
+      <button type="button" class={styles.primary} onClick={props.onCancel}>
         Cancel
       </button>
     </div>

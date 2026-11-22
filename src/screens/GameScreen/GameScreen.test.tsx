@@ -11,7 +11,19 @@ import type { MainToWorker, WorkerToMain } from "../../ai/protocol";
 import boardStyles from "../../components/Board/Board.module.css";
 import turnIndicatorStyles from "../../components/TurnIndicator/TurnIndicator.module.css";
 import { loadGame } from "../../gamePersistence";
+import type { Progress } from "../../logic/rules";
 import GameScreen from "./GameScreen";
+
+// Re-imports GameScreen with progressAfter stubbed, so a test can force a
+// pass or game over without building a board that produces one.
+async function importGameScreenWith(progress: Progress) {
+  vi.resetModules();
+  vi.doMock("../../logic/rules", async (importOriginal) => ({
+    ...(await importOriginal<typeof import("../../logic/rules")>()),
+    progressAfter: () => progress,
+  }));
+  return (await import("./GameScreen")).default;
+}
 
 beforeEach(() => {
   localStorage.clear();
@@ -25,7 +37,7 @@ afterEach(() => {
 });
 
 describe("GameScreen", () => {
-  it("plays a move through the real DOM: board updates immediately, input locks during the flip animation, and the turn indicator hands over once it settles", () => {
+  it("plays a move through the real DOM: board updates immediately, the turn indicator hands over at once, and input locks until the flip animation settles", () => {
     vi.useFakeTimers();
 
     const { container } = render(() => (
@@ -46,18 +58,18 @@ describe("GameScreen", () => {
     expect(buttons()[27].querySelector('[class*="disc"]')).not.toBeNull(); // d4, flipped
     expect(buttons()[19].classList.contains(boardStyles.lastMove)).toBe(true);
     expect((buttons()[0] as HTMLButtonElement).disabled).toBe(true); // locked mid-animation
-    expect(sides()[0].classList.contains(turnIndicatorStyles.active)).toBe(
+    expect(sides()[1].classList.contains(turnIndicatorStyles.active)).toBe(
       true,
-    ); // not handed over yet
+    );
+    expect(sides()[0].classList.contains(turnIndicatorStyles.active)).toBe(
+      false,
+    );
 
     vi.runAllTimers();
 
     expect((buttons()[0] as HTMLButtonElement).disabled).toBe(false);
     expect(sides()[1].classList.contains(turnIndicatorStyles.active)).toBe(
       true,
-    );
-    expect(sides()[0].classList.contains(turnIndicatorStyles.active)).toBe(
-      false,
     );
   });
 
@@ -159,19 +171,10 @@ describe("GameScreen", () => {
   });
 
   it("shows ResultOverlay with the real score once the store reaches status 'ended', and Rematch resets the game", async () => {
-    vi.resetModules();
-    vi.doMock("../../logic/rules", async (importOriginal) => {
-      const actual = await importOriginal<typeof import("../../logic/rules")>();
-      return {
-        ...actual,
-        progressAfter: () => ({
-          kind: "gameOver" as const,
-          winner: 1 as const,
-        }),
-      };
+    const GameScreenWithGameOver = await importGameScreenWith({
+      kind: "gameOver" as const,
+      winner: 1 as const,
     });
-
-    const { default: GameScreenWithGameOver } = await import("./GameScreen");
 
     vi.useFakeTimers();
     const { container } = render(() => (
@@ -194,19 +197,10 @@ describe("GameScreen", () => {
   });
 
   it("clears the saved game once it reaches game over", async () => {
-    vi.resetModules();
-    vi.doMock("../../logic/rules", async (importOriginal) => {
-      const actual = await importOriginal<typeof import("../../logic/rules")>();
-      return {
-        ...actual,
-        progressAfter: () => ({
-          kind: "gameOver" as const,
-          winner: 1 as const,
-        }),
-      };
+    const GameScreenWithGameOver = await importGameScreenWith({
+      kind: "gameOver" as const,
+      winner: 1 as const,
     });
-
-    const { default: GameScreenWithGameOver } = await import("./GameScreen");
 
     vi.useFakeTimers();
     const { container } = render(() => (
@@ -221,19 +215,10 @@ describe("GameScreen", () => {
   });
 
   it("calls onQuit when Back to Title is clicked on the result overlay", async () => {
-    vi.resetModules();
-    vi.doMock("../../logic/rules", async (importOriginal) => {
-      const actual = await importOriginal<typeof import("../../logic/rules")>();
-      return {
-        ...actual,
-        progressAfter: () => ({
-          kind: "gameOver" as const,
-          winner: 1 as const,
-        }),
-      };
+    const GameScreenWithGameOver = await importGameScreenWith({
+      kind: "gameOver" as const,
+      winner: 1 as const,
     });
-
-    const { default: GameScreenWithGameOver } = await import("./GameScreen");
 
     vi.useFakeTimers();
     const onQuit = vi.fn();
@@ -261,6 +246,10 @@ class MockWorker {
 
   emit(data: WorkerToMain): void {
     this.onmessage?.({ data } as MessageEvent<WorkerToMain>);
+  }
+
+  searches() {
+    return this.postMessage.mock.calls.filter(([m]) => m.type === "search");
   }
 
   lastSearchRequestId(): number {
@@ -323,16 +312,103 @@ describe("GameScreen AI orchestration", () => {
     // is called here from outside a DOM-event context (after an await), which
     // is exactly the condition under which a torn intermediate state could
     // make this same effect fire a spurious second search.
-    expect(
-      workers[0].postMessage.mock.calls.filter(([m]) => m.type === "search"),
-    ).toHaveLength(1);
+    expect(workers[0].searches()).toHaveLength(1);
+  });
+
+  it("shows the AI as thinking from the player's move onward, but only searches once the flip settles", async () => {
+    vi.useFakeTimers();
+
+    const { container } = render(() => (
+      <GameScreen
+        config={{ mode: "ai", difficulty: "easy", playerColor: 1 }}
+        onQuit={() => {}}
+      />
+    ));
+    const buttons = () => container.querySelectorAll(`.${boardStyles.cell}`);
+
+    workers[0].emit({ type: "ready" });
+    await Promise.resolve();
+    expect(screen.queryByText("Thinking…")).toBeNull();
+
+    fireEvent.click(buttons()[19]); // d3
+
+    expect(screen.getByText("Thinking…")).not.toBeNull();
+    expect(workers[0].searches()).toHaveLength(0);
+
+    await vi.advanceTimersByTimeAsync(1000); // past the flip animation
+
+    expect(workers[0].searches()).toHaveLength(1);
+    expect(screen.getByText("Thinking…")).not.toBeNull();
+  });
+
+  it.each([
+    ["the player must pass", { kind: "pass" as const, turn: 1 as const }],
+    ["the game ends", { kind: "gameOver" as const, winner: 1 as const }],
+  ])(
+    "doesn't show the AI as thinking during its own flip when %s",
+    async (_, progress) => {
+      const MockedGameScreen = await importGameScreenWith(progress);
+
+      vi.useFakeTimers();
+
+      // playerColor 2: the AI plays black and keeps the turn after its move.
+      const { container } = render(() => (
+        <MockedGameScreen
+          config={{ mode: "ai", difficulty: "easy", playerColor: 2 }}
+          onQuit={() => {}}
+        />
+      ));
+      const buttons = () => container.querySelectorAll(`.${boardStyles.cell}`);
+
+      workers[0].emit({ type: "ready" });
+      await Promise.resolve();
+
+      const requestId = workers[0].lastSearchRequestId();
+      workers[0].emit({ type: "bestMove", requestId, move: 19 }); // d3
+      await vi.advanceTimersByTimeAsync(600); // aiClient's minimum thinking time
+
+      expect(buttons()[19].querySelector('[class*="disc"]')).not.toBeNull();
+      expect(screen.queryByText("Thinking…")).toBeNull(); // mid-flip
+    },
+  );
+
+  it("starts a fresh AI search after Rematch when the AI moves first", async () => {
+    const MockedGameScreen = await importGameScreenWith({
+      kind: "gameOver" as const,
+      winner: 1 as const,
+    });
+
+    vi.useFakeTimers();
+
+    // playerColor 2: the AI plays black, so it moves first in every game.
+    render(() => (
+      <MockedGameScreen
+        config={{ mode: "ai", difficulty: "easy", playerColor: 2 }}
+        onQuit={() => {}}
+      />
+    ));
+
+    workers[0].emit({ type: "ready" });
+    await Promise.resolve();
+    expect(workers[0].searches()).toHaveLength(1);
+
+    const requestId = workers[0].lastSearchRequestId();
+    workers[0].emit({ type: "bestMove", requestId, move: 19 }); // ends the game
+    await vi.runAllTimersAsync();
+
+    fireEvent.click(screen.getByText("Rematch"));
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(workers[0].searches()).toHaveLength(2);
+    expect(screen.getByText("Thinking…")).not.toBeNull();
   });
 
   it("retries once on a search failure, then shows the crash overlay on a second failure", async () => {
+    const onQuit = vi.fn();
     const { container } = render(() => (
       <GameScreen
         config={{ mode: "ai", difficulty: "easy", playerColor: 2 }}
-        onQuit={() => {}}
+        onQuit={onQuit}
       />
     ));
     const buttons = () => container.querySelectorAll(`.${boardStyles.cell}`);
@@ -351,9 +427,7 @@ describe("GameScreen AI orchestration", () => {
     // one retry: a second search is posted with a fresh requestId instead of
     // showing the crash overlay right away
     await waitFor(() => {
-      expect(
-        workers[0].postMessage.mock.calls.filter(([m]) => m.type === "search"),
-      ).toHaveLength(2);
+      expect(workers[0].searches()).toHaveLength(2);
     });
     expect(screen.queryByText("The computer opponent crashed.")).toBeNull();
     const secondRequestId = workers[0].lastSearchRequestId();
@@ -383,9 +457,10 @@ describe("GameScreen AI orchestration", () => {
     // that retrigger falls through and launches a third search behind the
     // supposedly blocking crash overlay.
     await new Promise((resolve) => setTimeout(resolve, 0));
-    expect(
-      workers[0].postMessage.mock.calls.filter(([m]) => m.type === "search"),
-    ).toHaveLength(2);
+    expect(workers[0].searches()).toHaveLength(2);
+
+    fireEvent.click(screen.getByText("Back to Title"));
+    expect(onQuit).toHaveBeenCalledOnce();
   });
 
   it("closes an already-open menu when the AI crashes", async () => {
@@ -412,9 +487,7 @@ describe("GameScreen AI orchestration", () => {
     });
 
     await waitFor(() => {
-      expect(
-        workers[0].postMessage.mock.calls.filter(([m]) => m.type === "search"),
-      ).toHaveLength(2);
+      expect(workers[0].searches()).toHaveLength(2);
     });
     const secondRequestId = workers[0].lastSearchRequestId();
     workers[0].emit({
@@ -430,7 +503,7 @@ describe("GameScreen AI orchestration", () => {
     expect(dialog.hasAttribute("data-closed")).toBe(true);
   });
 
-  it("disables the menu button once AI init fails, so the menu can't be opened from behind the error banner", async () => {
+  it("disables the menu button once AI init fails, so the menu can't be opened from behind the failure overlay", async () => {
     render(() => (
       <GameScreen
         config={{ mode: "ai", difficulty: "easy", playerColor: 2 }}
@@ -463,6 +536,31 @@ describe("GameScreen AI orchestration", () => {
     });
     expect(menuButton.disabled).toBe(true);
     expect(dialog.hasAttribute("data-closed")).toBe(true);
+  });
+
+  it("calls onQuit when Back to Title is clicked on the init-failure overlay", async () => {
+    const onQuit = vi.fn();
+    render(() => (
+      <GameScreen
+        config={{ mode: "ai", difficulty: "easy", playerColor: 2 }}
+        onQuit={onQuit}
+      />
+    ));
+
+    workers[0].emit({
+      type: "error",
+      fatal: true,
+      message: "worker failed to load",
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("The computer opponent could not start."),
+      ).not.toBeNull();
+    });
+    fireEvent.click(screen.getByText("Back to Title"));
+
+    expect(onQuit).toHaveBeenCalledOnce();
   });
 
   it("defers an AI move that resolves while the menu is open, and applies it once the menu closes", async () => {

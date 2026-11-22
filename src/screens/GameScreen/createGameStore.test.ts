@@ -1,7 +1,22 @@
 import { createRoot } from "solid-js";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { initialBoard } from "../../logic/rules";
-import { createGameStore } from "./createGameStore";
+import { initialBoard, type Progress } from "../../logic/rules";
+import {
+  createGameStore,
+  FLIP_DURATION_MS,
+  FLIP_STAGGER_MS,
+} from "./createGameStore";
+
+// Re-imports createGameStore with progressAfter stubbed, so a test can force
+// a pass or game over without building a board that produces one.
+async function importStoreWith(progress: Progress) {
+  vi.resetModules();
+  vi.doMock("../../logic/rules", async (importOriginal) => ({
+    ...(await importOriginal<typeof import("../../logic/rules")>()),
+    progressAfter: () => progress,
+  }));
+  return (await import("./createGameStore")).createGameStore;
+}
 
 afterEach(() => {
   vi.useRealTimers();
@@ -10,7 +25,7 @@ afterEach(() => {
 });
 
 describe("createGameStore", () => {
-  it("updates the board immediately and hands the turn over once the animation completes", () => {
+  it("updates the board and hands the turn over immediately, unlocking input once the animation completes", () => {
     vi.useFakeTimers();
 
     let store!: ReturnType<typeof createGameStore>;
@@ -24,7 +39,8 @@ describe("createGameStore", () => {
     expect(store.state.board[19]).toBe(1);
     expect(store.state.board[27]).toBe(1); // d4, flipped
     expect(store.state.animating).toBe(true);
-    expect(store.state.turn).toBe(1); // not handed over yet
+    expect(store.state.turn).toBe(2);
+    expect(store.legalMoves()).toEqual([]); // input stays locked mid-flip
 
     vi.runAllTimers();
 
@@ -54,28 +70,17 @@ describe("createGameStore", () => {
 
     store.play(26); // input is locked mid-animation, so this is a no-op regardless of legality
     expect(store.state.board).toBe(boardDuringAnimation);
-    expect(store.state.turn).toBe(1);
+    expect(store.state.turn).toBe(2);
 
     vi.runAllTimers();
     dispose();
   });
 
   it("sets winner right after the last legal move, with no further input", async () => {
-    vi.resetModules();
-    vi.doMock("../../logic/rules", async (importOriginal) => {
-      const actual = await importOriginal<typeof import("../../logic/rules")>();
-      return {
-        ...actual,
-        progressAfter: () => ({
-          kind: "gameOver" as const,
-          winner: 1 as const,
-        }),
-      };
+    const createGameStoreWithGameOver = await importStoreWith({
+      kind: "gameOver" as const,
+      winner: 1 as const,
     });
-
-    const { createGameStore: createGameStoreWithGameOver } = await import(
-      "./createGameStore"
-    );
 
     vi.useFakeTimers();
 
@@ -86,9 +91,75 @@ describe("createGameStore", () => {
     });
 
     store.play(19); // the last legal move; progressAfter reports gameOver
+    expect(store.state.winner).toBeNull(); // the result waits for the flip
+    expect(store.state.turn).toBe(1);
     vi.runAllTimers();
 
     expect(store.state.winner).toBe(1);
+
+    dispose();
+  });
+
+  it("keeps the turn with the mover at once on a pass, and shows the pass message only after the flip", async () => {
+    const createGameStoreWithPass = await importStoreWith({
+      kind: "pass" as const,
+      turn: 1 as const,
+    });
+
+    vi.useFakeTimers();
+
+    let store!: ReturnType<typeof createGameStoreWithPass>;
+    const dispose = createRoot((d) => {
+      store = createGameStoreWithPass();
+      return d;
+    });
+
+    store.play(19); // white has no reply, so black moves again
+    expect(store.state.turn).toBe(1);
+    expect(store.state.passMessage).toBeNull();
+
+    vi.advanceTimersByTime(FLIP_DURATION_MS + FLIP_STAGGER_MS); // flip settles
+
+    expect(store.state.animating).toBe(false);
+    expect(store.state.turn).toBe(1);
+    expect(store.state.passMessage).toBe(2);
+
+    vi.advanceTimersByTime(1000); // pass message clears after its own timeout
+    expect(store.state.passMessage).toBeNull();
+
+    dispose();
+  });
+
+  it("reset mid-animation discards the pending settle, so no pass message lands afterwards", async () => {
+    const createGameStoreWithPass = await importStoreWith({
+      kind: "pass" as const,
+      turn: 1 as const,
+    });
+
+    vi.useFakeTimers();
+
+    let store!: ReturnType<typeof createGameStoreWithPass>;
+    const dispose = createRoot((d) => {
+      store = createGameStoreWithPass();
+      return d;
+    });
+
+    store.play(19);
+    expect(store.state.animating).toBe(true);
+
+    store.reset(); // mid-flip
+
+    expect(store.state.board).toEqual(initialBoard());
+    expect(store.state.turn).toBe(1);
+    expect(store.state.animating).toBe(false);
+    expect(store.state.lastMove).toBeNull();
+    expect(store.legalMoves()).toHaveLength(4); // input is unlocked again
+
+    vi.runAllTimers();
+
+    expect(store.state.board).toEqual(initialBoard());
+    expect(store.state.turn).toBe(1);
+    expect(store.state.passMessage).toBeNull();
 
     dispose();
   });
@@ -153,24 +224,6 @@ describe("createGameStore", () => {
     expect(store.state.board).toEqual(initialBoard());
     expect(store.state.turn).toBe(1);
     expect(store.state.lastMove).toBeNull();
-
-    dispose();
-  });
-
-  it("reset bumps generation even when nothing else in the state changes", () => {
-    let store!: ReturnType<typeof createGameStore>;
-    const dispose = createRoot((d) => {
-      store = createGameStore();
-      return d;
-    });
-
-    // reset() called with no moves played: board/turn/winner/etc. all
-    // already hold their initial values, so generation is the only field
-    // guaranteed to change - this is what lets a consumer (GameScreen's AI
-    // orchestration effect) detect the reset even then.
-    const before = store.state.generation;
-    store.reset();
-    expect(store.state.generation).toBe(before + 1);
 
     dispose();
   });

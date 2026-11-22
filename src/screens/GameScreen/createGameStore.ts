@@ -28,12 +28,6 @@ type GameState = {
   passMessage: Player | null;
   thinking: boolean;
   animating: boolean;
-  // Bumped on every reset(). Lets a consumer detect "the game was reset" even
-  // in the one case where every other field happens to end up unchanged: a
-  // Restart during the AI's very first search of a game (turn/animating/
-  // winner all already hold their initial values, so nothing else here would
-  // otherwise flag the reset).
-  generation: number;
 };
 
 function chebyshevDistance(a: number, b: number): number {
@@ -44,7 +38,7 @@ function chebyshevDistance(a: number, b: number): number {
   return Math.max(Math.abs(rowA - rowB), Math.abs(colA - colB));
 }
 
-function initialState(generation: number, restore?: RestoreState): GameState {
+function initialState(restore?: RestoreState): GameState {
   return {
     board: restore?.board ?? initialBoard(),
     turn: restore?.turn ?? 1,
@@ -54,12 +48,11 @@ function initialState(generation: number, restore?: RestoreState): GameState {
     passMessage: null,
     thinking: false,
     animating: false,
-    generation,
   };
 }
 
 export function createGameStore(restore?: RestoreState) {
-  const [state, setState] = createStore<GameState>(initialState(0, restore));
+  const [state, setState] = createStore<GameState>(initialState(restore));
 
   let animationTimeout: ReturnType<typeof setTimeout> | undefined;
   let passTimeout: ReturnType<typeof setTimeout> | undefined;
@@ -69,9 +62,9 @@ export function createGameStore(restore?: RestoreState) {
     clearTimeout(passTimeout);
   });
 
-  // !animating skips a recompute against the pre-flip board/mover pair that a
-  // move-in-progress leaves stale for its duration; callers must not read the
-  // resulting [] as "no legal moves" (i.e. a pass) during that window.
+  // !animating locks input and hides the hints for the flip's duration;
+  // callers must not read the resulting [] as "no legal moves" (i.e. a pass)
+  // during that window.
   const legalMoves = createMemo(() =>
     state.winner === null && !state.animating
       ? getLegalMoves(state.board, state.turn)
@@ -79,28 +72,6 @@ export function createGameStore(restore?: RestoreState) {
   );
 
   const score = createMemo(() => countDiscs(state.board));
-
-  function finishMove(mover: Player, board: Board) {
-    const progress = progressAfter(board, mover);
-
-    if (progress.kind === "play") {
-      setState("turn", progress.turn);
-      return;
-    }
-
-    if (progress.kind === "pass") {
-      setState("turn", progress.turn);
-      setState("passMessage", opponent(mover));
-      clearTimeout(passTimeout);
-      passTimeout = setTimeout(
-        () => setState("passMessage", null),
-        PASS_MESSAGE_MS,
-      );
-      return;
-    }
-
-    setState("winner", progress.winner);
-  }
 
   function play(index: number) {
     if (state.winner !== null || state.animating) return;
@@ -117,24 +88,41 @@ export function createGameStore(restore?: RestoreState) {
       if (delay > maxDelay) maxDelay = delay;
     }
 
+    const progress = progressAfter(board, mover);
+
     // batch(): play() can be invoked from outside a Solid-tracked context (the
     // AI orchestration effect calls it after an await, not from a DOM event),
     // where Solid doesn't auto-batch consecutive setState calls. Without this,
     // an effect that reads more than one of these fields can observe a torn
-    // intermediate state - e.g. animating already false but turn not yet
-    // updated - and react to it as if it were a real, settled state.
+    // intermediate state - e.g. animating already false but winner not yet
+    // set after the AI's final move, which would start a search on a finished
+    // board - and react to it as if it were a real, settled state.
     batch(() => {
       setState("board", board);
       setState("lastMove", index);
       setState("flipDelays", flipDelays);
       setState("animating", true);
+      // The turn hands over as soon as the move is placed, so the turn
+      // indicator moves with the board instead of lagging behind the flip.
+      // Input and the AI's next search stay gated on `animating`; the pass
+      // message and the winner wait for the flip to settle below.
+      if (progress.kind !== "gameOver") setState("turn", progress.turn);
     });
 
     clearTimeout(animationTimeout);
     animationTimeout = setTimeout(() => {
       batch(() => {
         setState("animating", false);
-        finishMove(mover, board);
+        if (progress.kind === "pass") {
+          setState("passMessage", opponent(mover));
+          clearTimeout(passTimeout);
+          passTimeout = setTimeout(
+            () => setState("passMessage", null),
+            PASS_MESSAGE_MS,
+          );
+        } else if (progress.kind === "gameOver") {
+          setState("winner", progress.winner);
+        }
       });
     }, maxDelay + FLIP_DURATION_MS);
   }
@@ -142,7 +130,7 @@ export function createGameStore(restore?: RestoreState) {
   function reset() {
     clearTimeout(animationTimeout);
     clearTimeout(passTimeout);
-    setState(initialState(state.generation + 1));
+    setState(initialState());
   }
 
   function setThinking(thinking: boolean) {

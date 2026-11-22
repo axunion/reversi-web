@@ -25,12 +25,15 @@
   --flip-stagger: 60ms;
   --ease-pop: cubic-bezier(0.2, 1.4, 0.4, 1);
   --radius: 12px;
-  /* Max outer width of a content-column element on a screen that centers
-     itself (Board's frame, TurnIndicator, MatchInfo). calc(100vw - 48px)
-     reserves the screen's own 24px horizontal padding on each side, so at
-     narrow viewports this fills exactly the padded content box instead of
-     touching the viewport edge. */
-  --content-width: min(92vmin, 560px, calc(100vw - 48px));
+  /* The game screen's padding and the board's wood frame both shrink on
+     narrow phones, so the board's cells stay close to a 40px tap target. */
+  --screen-pad: clamp(8px, 2.5vw, 24px);
+  --frame-pad: clamp(6px, 2vw, 14px);
+  /* Max outer width of a content-column element on the game screen (Board's
+     frame, TurnIndicator, MatchInfo). Subtracting the screen's own padding on
+     each side makes it fill exactly the padded content box at narrow
+     viewports instead of touching the viewport edge. */
+  --content-width: min(96vmin, 560px, calc(100vw - 2 * var(--screen-pad)));
 }
 
 *,

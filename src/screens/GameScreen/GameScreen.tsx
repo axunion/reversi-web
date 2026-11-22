@@ -51,12 +51,29 @@ function GameScreen(props: GameScreenProps) {
       aiFailure() !== null,
   );
 
+  // The AI only starts searching once the flip settles, but the turn has
+  // already handed over to it, so show it as thinking from the player's move
+  // onward. Checking who placed the last disc keeps this off during the AI's
+  // own flip when it keeps the turn (the player passes) or the game ends.
+  const aiThinking = () => {
+    if (store.state.thinking) return true;
+    if (!aiConfig || aiFailure() !== null || !store.state.animating) {
+      return false;
+    }
+    const { board, lastMove, turn } = store.state;
+    return (
+      lastMove !== null &&
+      board[lastMove] === aiConfig.playerColor &&
+      turn === opponent(aiConfig.playerColor)
+    );
+  };
+
   if (aiClient) {
     aiClient.init().catch(() => {
       setAiFailure("init");
       // Force the in-game menu closed: it's still fully interactive (Kobalte's
       // Dialog doesn't know about this failure), and would otherwise portal on
-      // top of the error banner below instead of yielding to it.
+      // top of the failure overlay below instead of yielding to it.
       setMenuOpen(false);
     });
     onCleanup(() => aiClient.dispose());
@@ -96,10 +113,6 @@ function GameScreen(props: GameScreenProps) {
     const turn = store.state.turn;
     const animating = store.state.animating;
     const winner = store.state.winner;
-    // Tracked so a reset() during the AI's very first search still
-    // retriggers this effect, even in the one case where turn/animating/
-    // winner all happen to already hold their post-reset values (createGameStore.ts).
-    void store.state.generation;
 
     if (!aiClient || !aiConfig || aiFailure() !== null) return;
     if (winner !== null || animating) return;
@@ -149,7 +162,7 @@ function GameScreen(props: GameScreenProps) {
             setAiFailure("crash");
           }
           // Same reasoning as the init-failure branch above: force the menu
-          // closed so it yields to the crash overlay instead of portaling on
+          // closed so it yields to the failure overlay instead of portaling on
           // top of it.
           setMenuOpen(false);
         }
@@ -165,8 +178,9 @@ function GameScreen(props: GameScreenProps) {
   });
 
   // Persists the in-progress game so a reload can resume it (App.tsx reads
-  // this back on startup). Skips while animating: board/turn aren't settled
-  // together yet mid-flip, so saving here could restore a torn state.
+  // this back on startup). Skips while animating: the winner is only set once
+  // the flip settles, so saving the final move mid-flip would store a finished
+  // board as an in-progress game.
   createEffect(() => {
     if (store.state.animating) return;
     if (store.state.winner !== null) {
@@ -205,7 +219,7 @@ function GameScreen(props: GameScreenProps) {
       <TurnIndicator
         turn={store.state.turn}
         score={store.score()}
-        thinking={store.state.thinking}
+        thinking={aiThinking()}
         passMessage={store.state.passMessage}
         moveNumber={moveNumber(store.state.board)}
       />
@@ -234,23 +248,25 @@ function GameScreen(props: GameScreenProps) {
           />
         )}
       </Show>
-      <Show when={aiFailure() === "init"}>
-        <div class={styles.errorBanner}>
-          <p>The computer opponent could not start.</p>
-          <button type="button" class={styles.button} onClick={quitToTitle}>
-            Back to Title
-          </button>
-        </div>
-      </Show>
-      <Show when={aiFailure() === "crash"}>
-        <div class={styles.crashOverlay}>
-          <div class={styles.crashPanel}>
-            <p>The computer opponent crashed.</p>
-            <button type="button" class={styles.button} onClick={quitToTitle}>
-              Back to Title
-            </button>
+      <Show when={aiFailure()}>
+        {(failure) => (
+          <div class={styles.failureOverlay}>
+            <div class={styles.failurePanel}>
+              <p>
+                {failure() === "init"
+                  ? "The computer opponent could not start."
+                  : "The computer opponent crashed."}
+              </p>
+              <button
+                type="button"
+                class={styles.primary}
+                onClick={quitToTitle}
+              >
+                Back to Title
+              </button>
+            </div>
           </div>
-        </div>
+        )}
       </Show>
     </div>
   );
